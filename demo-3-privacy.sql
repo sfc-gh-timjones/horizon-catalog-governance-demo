@@ -191,6 +191,20 @@ FROM (
 )
 GROUP BY department;
 
+-- DATA USER: how many employees earn $100K–$150K per department?
+SELECT
+    department,
+    COUNT(salary) AS emp_count,
+    DP_INTERVAL_LOW(emp_count) AS count_low,
+    DP_INTERVAL_HIGH(emp_count) AS count_high
+FROM (
+    SELECT EMPLOYEE_ID, ANY_VALUE(DEPARTMENT) AS department, ANY_VALUE(SALARY) AS salary
+    FROM HRZN_DB.HRZN_SCH.EMPLOYEES
+    GROUP BY EMPLOYEE_ID
+)
+WHERE salary > 100000 AND salary < 150000
+GROUP BY department;
+
 -- Privacy budget: how many queries remain before the weekly reset?
 SELECT * FROM TABLE(SNOWFLAKE.DATA_PRIVACY.ESTIMATE_REMAINING_DP_AGGREGATES('HRZN_DB.HRZN_SCH.EMPLOYEES'));
 
