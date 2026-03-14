@@ -7,7 +7,7 @@
   What you'll show:
     - AI classification tagged every column with a sensitivity level
     - Tag propagation: labels follow data through CTAS automatically
-    - Custom classifiers detect business-specific patterns (credit cards)
+    - Live AI classification with custom classifiers (credit cards)
 
   Setup references:
     - AI classification + tag creation:   2-data-governor.sql lines 38-119
@@ -78,19 +78,28 @@ ORDER BY
     END, COLUMN_NAME;
 
 /*=============================================================================
-  CUSTOM CLASSIFIER — Credit Card Detection
+  LIVE AI CLASSIFICATION
   
-  The built-in AI classified columns by sensitivity level. But we also
-  built a custom regex classifier that detects specific card formats
-  (Mastercard, Amex, etc.) and tags the column via SEMANTIC_CATEGORY.
+  Run Snowflake's AI classifier in real time against the CUSTOMER table.
+  It scans every column's values and recommends a semantic category,
+  privacy category, and confidence level — no manual tagging needed.
+  
+  A custom regex classifier for credit card formats (Mastercard, Amex)
+  is also included to enhance detection accuracy.
   
   Setup ref: 2-data-governor.sql lines 148-165
 =============================================================================*/
 
-SELECT COLUMN_NAME, TAG_NAME, TAG_VALUE
-FROM TABLE(
-    INFORMATION_SCHEMA.TAG_REFERENCES_ALL_COLUMNS(
-        'HRZN_DB.HRZN_SCH.CUSTOMER', 'table'
-    )
-)
-WHERE COLUMN_NAME = 'CREDITCARD';
+CALL SYSTEM$CLASSIFY(
+    'HRZN_DB.HRZN_SCH.CUSTOMER',
+    {'custom_classifiers': ['HRZN_DB.CLASSIFIERS.CREDITCARD']}
+);
+
+SELECT
+    col.key AS COLUMN_NAME,
+    col.value:recommendation:semantic_category::STRING AS SEMANTIC_CATEGORY,
+    col.value:recommendation:privacy_category::STRING AS PRIVACY_CATEGORY,
+    col.value:recommendation:confidence::STRING AS CONFIDENCE
+FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())) r,
+    LATERAL FLATTEN(input => r."SYSTEM$CLASSIFY":classification_result) col
+ORDER BY col.key;
