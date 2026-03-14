@@ -98,44 +98,6 @@ WHERE REFERENCING_DATABASE = 'HRZN_DB'
 SELECT GET_DDL('VIEW', 'HRZN_DB.HRZN_SCH.CUSTOMER_ORDER_SUMMARY');
 
 /*=============================================================================
-  ROLE EFFECTIVENESS — Granted vs Used
-  
-  Identifies dormant roles (granted but never used)
-  and over-provisioned roles (many grants, few queries).
-  
-  Setup ref: 3-it-admin.sql lines 230-260
-=============================================================================*/
-
-WITH granted AS (
-    SELECT
-        GRANTEE_NAME AS role_name,
-        COUNT(*) AS total_grants
-    FROM SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_ROLES
-    WHERE DELETED_ON IS NULL
-    GROUP BY GRANTEE_NAME
-),
-used AS (
-    SELECT
-        ROLE_NAME AS role_name,
-        COUNT(DISTINCT QUERY_ID) AS queries_last_30d
-    FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
-    WHERE START_TIME >= DATEADD(day, -30, CURRENT_TIMESTAMP())
-    GROUP BY ROLE_NAME
-)
-SELECT
-    g.role_name,
-    g.total_grants,
-    COALESCE(u.queries_last_30d, 0) AS queries_last_30d,
-    CASE
-        WHEN COALESCE(u.queries_last_30d, 0) = 0 THEN 'DORMANT'
-        WHEN g.total_grants > 20 AND COALESCE(u.queries_last_30d, 0) < 5 THEN 'OVER-PROVISIONED'
-        ELSE 'ACTIVE'
-    END AS effectiveness_status
-FROM granted g
-LEFT JOIN used u ON g.role_name = u.role_name
-ORDER BY g.role_name;
-
-/*=============================================================================
   LOGIN HISTORY — User Activity Over 90 Days
   
   Who's logging in, how often, and when was their last session?
@@ -220,5 +182,45 @@ SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE
 FROM HRZN_DB.INFORMATION_SCHEMA.TABLES
 WHERE TABLE_SCHEMA IN ('HRZN_SCH','TAG_SCHEMA','CLASSIFIERS','SEC_POLICIES_SCHEMA')
 ORDER BY TABLE_SCHEMA, TABLE_TYPE, TABLE_NAME;
+
+/*=============================================================================
+  ROLE EFFECTIVENESS — Granted vs Used
+  
+  Identifies dormant roles (granted but never used)
+  and over-provisioned roles (many grants, few queries).
+  
+  Setup ref: 3-it-admin.sql lines 230-260
+=============================================================================*/
+
+USE ROLE HRZN_IT_ADMIN;
+
+WITH granted AS (
+    SELECT
+        GRANTEE_NAME AS role_name,
+        COUNT(*) AS total_grants
+    FROM SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_ROLES
+    WHERE DELETED_ON IS NULL
+    GROUP BY GRANTEE_NAME
+),
+used AS (
+    SELECT
+        ROLE_NAME AS role_name,
+        COUNT(DISTINCT QUERY_ID) AS queries_last_30d
+    FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
+    WHERE START_TIME >= DATEADD(day, -30, CURRENT_TIMESTAMP())
+    GROUP BY ROLE_NAME
+)
+SELECT
+    g.role_name,
+    g.total_grants,
+    COALESCE(u.queries_last_30d, 0) AS queries_last_30d,
+    CASE
+        WHEN COALESCE(u.queries_last_30d, 0) = 0 THEN 'DORMANT'
+        WHEN g.total_grants > 20 AND COALESCE(u.queries_last_30d, 0) < 5 THEN 'OVER-PROVISIONED'
+        ELSE 'ACTIVE'
+    END AS effectiveness_status
+FROM granted g
+LEFT JOIN used u ON g.role_name = u.role_name
+ORDER BY g.role_name;
 
 ALTER WAREHOUSE HRZN_WH SET WAREHOUSE_SIZE = 'XSMALL';
