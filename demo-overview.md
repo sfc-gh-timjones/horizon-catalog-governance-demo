@@ -55,9 +55,10 @@ that apply to tables, views, AI models, and apps — all from a single control p
 - AI_REDACT detects and removes 50+ PII types from unstructured text (feedback, tickets, emails) — no regex needed
 - Partial redaction lets you choose exactly which PII types to redact (e.g., names and emails, but keep phone numbers)
 - Secure views provide role-based access: governors see original PII, analysts see the pre-redacted version
+- Differential privacy on the EMPLOYEES table: individual rows blocked, only noisy aggregates allowed, with confidence intervals (DP_INTERVAL_LOW/HIGH) and a weekly privacy budget
 
 **Demo script:** [`demo-3-privacy.sql`](demo-3-privacy.sql)
-**Setup reference:** `2-data-governor.sql` (masking policies), `5-ai-redact.sql` (AI_REDACT + secure view)
+**Setup reference:** `2-data-governor.sql` (masking policies), `5-ai-redact.sql` (AI_REDACT + secure view), `0-setup.sql` (EMPLOYEES + privacy policy)
 
 ---
 
@@ -91,6 +92,9 @@ that apply to tables, views, AI models, and apps — all from a single control p
 **"Prove governance works."**
 
 - Access history tracks every query: who accessed what data, when, and how (read vs. write)
+- Login history shows user activity over 90 days with active/recent/stale status
+- Warehouse metering reveals credit consumption by warehouse
+- Query attribution ties credit spend back to individual users
 - Object dependency lineage shows which views, tables, and semantic views depend on each other — useful for impact analysis
 - Role effectiveness analysis compares granted privileges vs. actual usage to identify dormant or over-provisioned roles
 - Governance scorecard summarizes policy coverage across the environment
@@ -104,7 +108,7 @@ that apply to tables, views, AI models, and apps — all from a single control p
 
 | Script | Purpose |
 |--------|---------|
-| `0-setup.sql` | Idempotent environment build: roles, warehouse, database, schemas, data load from S3 |
+| `0-setup.sql` | Idempotent environment build: roles, warehouse, database, schemas, data load from S3, EMPLOYEES table + differential privacy |
 | `1-data-engineer.sql` | DMF creation, custom DMF, scheduling |
 | `2-data-governor.sql` | Classification, masking, row access, aggregation, projection, tag propagation |
 | `3-it-admin.sql` | Access history queries, lineage, role effectiveness |
