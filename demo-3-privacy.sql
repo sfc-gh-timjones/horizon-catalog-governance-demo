@@ -58,7 +58,7 @@ FROM HRZN_DB.HRZN_SCH.CUSTOMER LIMIT 10;
 =============================================================================*/
 
 USE ROLE HRZN_DATA_USER;
-SELECT ID, FIRST_NAME, EMAIL, SSN, PHONE_NUMBER FROM HRZN_DB.HRZN_SCH.CUSTOMER_COPY LIMIT 5;
+SELECT ID, FIRST_NAME, EMAIL, SSN, PHONE_NUMBER FROM HRZN_DB.HRZN_SCH.CUSTOMER_COPY LIMIT 10;
 
 /*=============================================================================
   AI_REDACT — Unstructured PII Protection
@@ -102,8 +102,8 @@ WITH feedback_sample AS (
 )
 SELECT
     text AS original,
-    SNOWFLAKE.CORTEX.AI_REDACT(text) AS full_redaction,
-    SNOWFLAKE.CORTEX.AI_REDACT(text, ['NAME', 'EMAIL']) AS partial_redaction
+    SNOWFLAKE.CORTEX.AI_REDACT(text)::VARCHAR AS full_redaction,
+    SNOWFLAKE.CORTEX.AI_REDACT(text, ['NAME', 'EMAIL'])::VARCHAR AS partial_redaction
 FROM feedback_sample;
 
 /*=============================================================================
@@ -115,26 +115,21 @@ FROM feedback_sample;
   Setup ref: 5-ai-redact.sql lines 108-120
 =============================================================================*/
 
-WITH distinct_feedback AS (
-    SELECT redacted_feedback,
-           SNOWFLAKE.CORTEX.SENTIMENT(redacted_feedback) AS sentiment_score,
-           ROW_NUMBER() OVER (PARTITION BY MOD(ORDER_ID::INT, 10) ORDER BY ORDER_ID) AS rn
-    FROM HRZN_DB.HRZN_SCH.CUSTOMER_FEEDBACK_REDACTED
-    WHERE redacted_feedback NOT LIKE 'Standard order%'
-)
 SELECT
-    redacted_feedback, sentiment_score,
+    redacted_feedback,
+    SNOWFLAKE.CORTEX.SENTIMENT(redacted_feedback) AS sentiment_score,
     CASE
-        WHEN sentiment_score > 0.5 THEN 'Positive'
-        WHEN sentiment_score < -0.5 THEN 'Negative'
+        WHEN SNOWFLAKE.CORTEX.SENTIMENT(redacted_feedback) > 0.5 THEN 'Positive'
+        WHEN SNOWFLAKE.CORTEX.SENTIMENT(redacted_feedback) < -0.5 THEN 'Negative'
         ELSE 'Neutral'
     END AS sentiment_category
-FROM distinct_feedback
-WHERE rn = 1
+FROM HRZN_DB.HRZN_SCH.CUSTOMER_FEEDBACK_REDACTED
+WHERE redacted_feedback NOT LIKE 'Standard order%'
+QUALIFY ROW_NUMBER() OVER (PARTITION BY MOD(ORDER_ID::INT, 10) ORDER BY ORDER_ID) = 1
 ORDER BY sentiment_score DESC;
 
 /*=============================================================================
-  SECURE VIEW — Role-Based PII Access
+  ROLE-BASED REDACTION VIEW
   
   CUSTOMER_FEEDBACK_SECURE shows original text to governors
   and pre-redacted text to everyone else. One view, automatic switching.
