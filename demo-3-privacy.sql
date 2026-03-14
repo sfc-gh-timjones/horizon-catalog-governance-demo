@@ -19,7 +19,8 @@
     - Customer feedback data + AI_REDACT:    5-ai-redact.sql lines 20-97
     - Secure view creation:                  5-ai-redact.sql lines 143-155
     - Sentiment analysis:                    5-ai-redact.sql lines 108-120
-    - Differential privacy setup:             0-setup.sql (EMPLOYEES + privacy policy)
+    - EMPLOYEES table (synthetic data):        0-setup.sql lines 204-237
+    - Privacy policy + entity key + domains:   0-setup.sql lines 286-320
 ***************************************************************************************************/
 
 USE WAREHOUSE HRZN_WH;
