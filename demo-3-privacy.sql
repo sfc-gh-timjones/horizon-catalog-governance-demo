@@ -165,7 +165,7 @@ WHERE CUSTOMER_FEEDBACK NOT LIKE 'Standard order%' LIMIT 3;
   Noise is injected automatically to prevent re-identification.
   A weekly privacy budget limits how many queries analysts can run.
   
-  Setup ref: 0-setup.sql (EMPLOYEES table + privacy policy + domains)
+  Setup ref: 0-setup.sql lines 204-237 (EMPLOYEES table), lines 286-320 (privacy policy + domains)
 =============================================================================*/
 
 -- GOVERNOR: exact results, no noise
