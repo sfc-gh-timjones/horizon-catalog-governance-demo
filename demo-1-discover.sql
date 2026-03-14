@@ -33,6 +33,8 @@ USE SCHEMA HRZN_SCH;
     INTERNAL   — JOB (business data, low risk)
 =============================================================================*/
 
+SELECT TOP 50 * FROM HRZN_DB.HRZN_SCH.CUSTOMER;
+
 SELECT COLUMN_NAME, TAG_VALUE AS CLASSIFICATION_LEVEL
 FROM TABLE(
     INFORMATION_SCHEMA.TAG_REFERENCES_ALL_COLUMNS(
