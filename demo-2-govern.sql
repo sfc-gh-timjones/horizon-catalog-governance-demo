@@ -41,6 +41,8 @@ GROUP BY STATE ORDER BY customer_count DESC;
 
 -- DATA USER: Only CA, TX, MA
 USE ROLE HRZN_DATA_USER;
+SELECT * FROM HRZN_DB.HRZN_SCH.CUSTOMER;
+
 SELECT STATE, COUNT(*) AS customer_count
 FROM HRZN_DB.HRZN_SCH.CUSTOMER
 GROUP BY STATE ORDER BY customer_count DESC;
@@ -95,9 +97,11 @@ USE ROLE HRZN_DATA_USER;
 SELECT TOP 10 * FROM HRZN_DB.HRZN_SCH.CUSTOMER;
 
 -- WORKS: exclude ZIP from output
+-- (names appear masked — tag-based masking policies are active for DATA_USER)
 SELECT TOP 10 * EXCLUDE ZIP FROM HRZN_DB.HRZN_SCH.CUSTOMER;
 
 -- WORKS: ZIP can be used in WHERE (filter without seeing)
+-- (names still masked — masking policies apply regardless of projection policy)
 SELECT * EXCLUDE ZIP FROM HRZN_DB.HRZN_SCH.CUSTOMER WHERE ZIP IN ('53596','38106','62568') LIMIT 5;
 
 USE ROLE HRZN_DATA_GOVERNOR;
