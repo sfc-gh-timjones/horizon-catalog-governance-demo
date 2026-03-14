@@ -44,12 +44,13 @@ DROP WAREHOUSE IF EXISTS HRZN_WH;
 
   Dropping the database automatically removes:
     All schemas (HRZN_SCH, CLASSIFIERS, TAG_SCHEMA, SEC_POLICIES_SCHEMA)
-    All tables (CUSTOMER, CUSTOMER_ORDERS, CUSTOMER_COPY, CUSTOMER_FEEDBACK_REDACTED, ROW_POLICY_MAP, CUSTOMER_CONSENT_MAP)
+    All tables (CUSTOMER, CUSTOMER_ORDERS, CUSTOMER_COPY, CUSTOMER_FEEDBACK_REDACTED, EMPLOYEES, ROW_POLICY_MAP, CUSTOMER_CONSENT_MAP)
     All views (CUSTOMER_ORDER_SUMMARY, CUSTOMER_FEEDBACK_SECURE)
     All semantic views (CUSTOMER_ORDER_ANALYTICS)
     All functions (INVALID_EMAIL_COUNT data metric function)
     All masking policies (DATA_CLASSIFICATION_MASK_STRING, _NUMBER, _DATE, _TIMESTAMP)
     All row access policies (CUSTOMER_OPTIN_POLICY, CUSTOMER_STATE_RESTRICTIONS)
+    All privacy policies (EMPLOYEE_PRIVACY_POLICY + privacy domains)
     All tags (DATA_CLASSIFICATION with propagation)
 =============================================================================*/
 
