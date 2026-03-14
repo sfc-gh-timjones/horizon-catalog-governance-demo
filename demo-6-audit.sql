@@ -6,18 +6,23 @@
 
   What you'll show:
     - Access history: who accessed what data, when, read vs write
+    - Login history: user login activity over last 90 days
+    - Warehouse metering: credit consumption by warehouse
+    - Cost attribution: which users drove the most credit spend
     - Object dependency lineage: what depends on the CUSTOMER table
     - Upstream lineage: what feeds the summary view
     - Role effectiveness: granted privileges vs actual usage
     - Governance scorecard: policy coverage overview
 
   Setup references:
-    - Access history queries:              3-it-admin.sql lines 24-31
-    - Read vs write breakdown:             3-it-admin.sql lines 34-46
+    - Access history queries:              3-it-admin.sql lines 24-46
     - OBJECT_DEPENDENCIES lineage:         3-it-admin.sql lines 172-197
     - Role effectiveness analysis:         3-it-admin.sql lines 230-260
     - Governance coverage scoring:         6-nl-governance.sql lines 115-154
     - Policy types summary:                6-nl-governance.sql lines 167-175
+    - Login history:                       SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY
+    - Warehouse metering:                  SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_METERING_HISTORY
+    - Query attribution:                   SNOWFLAKE.ACCOUNT_USAGE.QUERY_ATTRIBUTION_HISTORY
 
   Note: Access history has up to 3-hour latency.
   Results improve the longer the demo environment has been running.
@@ -37,6 +42,8 @@ USE SCHEMA HRZN_SCH;
 =============================================================================*/
 
 USE ROLE HRZN_IT_ADMIN;
+
+ALTER WAREHOUSE HRZN_WH SET WAREHOUSE_SIZE = 'MEDIUM';
 
 -- Direct object access counts
 SELECT
@@ -87,6 +94,9 @@ WHERE REFERENCING_DATABASE = 'HRZN_DB'
     AND REFERENCING_SCHEMA = 'HRZN_SCH'
     AND REFERENCING_OBJECT_NAME = 'CUSTOMER_ORDER_SUMMARY';
 
+-- Prove it: show the actual DDL — you can see CUSTOMER and CUSTOMER_ORDERS referenced
+SELECT GET_DDL('VIEW', 'HRZN_DB.HRZN_SCH.CUSTOMER_ORDER_SUMMARY');
+
 /*=============================================================================
   ROLE EFFECTIVENESS — Granted vs Used
   
@@ -128,6 +138,66 @@ LEFT JOIN used u ON g.role_name = u.role_name
 ORDER BY g.role_name;
 
 /*=============================================================================
+  LOGIN HISTORY — User Activity Over 90 Days
+  
+  Who's logging in, how often, and when was their last session?
+  Spot inactive accounts and verify active user engagement.
+=============================================================================*/
+
+SELECT
+    USER_NAME,
+    COUNT(*) AS login_count,
+    MAX(EVENT_TIMESTAMP) AS last_login,
+    MIN(EVENT_TIMESTAMP) AS first_login_in_window,
+    CASE
+        WHEN MAX(EVENT_TIMESTAMP) >= DATEADD(day, -7, CURRENT_TIMESTAMP()) THEN 'ACTIVE'
+        WHEN MAX(EVENT_TIMESTAMP) >= DATEADD(day, -30, CURRENT_TIMESTAMP()) THEN 'RECENT'
+        ELSE 'STALE'
+    END AS activity_status
+FROM SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY
+WHERE EVENT_TIMESTAMP >= DATEADD(day, -90, CURRENT_TIMESTAMP())
+    AND IS_SUCCESS = 'YES'
+GROUP BY USER_NAME
+ORDER BY login_count DESC;
+
+/*=============================================================================
+  WAREHOUSE METERING — Credit Consumption (Last 90 Days)
+  
+  Which warehouses burned the most credits?
+  Helps identify cost hotspots and right-sizing opportunities.
+=============================================================================*/
+
+SELECT
+    WAREHOUSE_NAME,
+    ROUND(SUM(CREDITS_USED), 2) AS total_credits,
+    ROUND(SUM(CREDITS_USED_COMPUTE), 2) AS compute_credits,
+    ROUND(SUM(CREDITS_USED_CLOUD_SERVICES), 2) AS cloud_services_credits,
+    COUNT(DISTINCT TO_DATE(START_TIME)) AS active_days
+FROM SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_METERING_HISTORY
+WHERE START_TIME >= DATEADD(day, -90, CURRENT_TIMESTAMP())
+GROUP BY WAREHOUSE_NAME
+ORDER BY total_credits DESC;
+
+/*=============================================================================
+  QUERY ATTRIBUTION — Who's Driving Credit Spend?
+  
+  Attributes warehouse credits back to the users who ran the queries.
+  Identifies top spenders for chargeback and optimization.
+=============================================================================*/
+
+SELECT
+    USER_NAME,
+    WAREHOUSE_NAME,
+    ROUND(SUM(CREDITS_ATTRIBUTED_COMPUTE), 2) AS compute_credits,
+    COUNT(DISTINCT QUERY_ID) AS query_count,
+    ROUND(SUM(CREDITS_ATTRIBUTED_COMPUTE) / NULLIF(COUNT(DISTINCT QUERY_ID), 0), 4) AS credits_per_query
+FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_ATTRIBUTION_HISTORY
+WHERE START_TIME >= DATEADD(day, -90, CURRENT_TIMESTAMP())
+GROUP BY USER_NAME, WAREHOUSE_NAME
+ORDER BY compute_credits DESC
+LIMIT 20;
+
+/*=============================================================================
   GOVERNANCE SCORECARD — Policy Coverage
   
   Quick overview: what policies are applied to CUSTOMER?
@@ -152,3 +222,5 @@ SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE
 FROM HRZN_DB.INFORMATION_SCHEMA.TABLES
 WHERE TABLE_SCHEMA IN ('HRZN_SCH','TAG_SCHEMA','CLASSIFIERS','SEC_POLICIES_SCHEMA')
 ORDER BY TABLE_SCHEMA, TABLE_TYPE, TABLE_NAME;
+
+ALTER WAREHOUSE HRZN_WH SET WAREHOUSE_SIZE = 'XSMALL';
