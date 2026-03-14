@@ -73,11 +73,20 @@ SELECT ID, FIRST_NAME, EMAIL, SSN, PHONE_NUMBER FROM HRZN_DB.HRZN_SCH.CUSTOMER_C
 
 USE ROLE HRZN_DATA_GOVERNOR;
 
--- Side-by-side: original PII vs AI-redacted
+-- Live AI_REDACT: watch PII get stripped in real time
+SELECT ORDER_ID,
+       CUSTOMER_FEEDBACK AS original_feedback,
+       SNOWFLAKE.CORTEX.AI_REDACT(CUSTOMER_FEEDBACK) AS redacted_feedback
+FROM HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS
+WHERE CUSTOMER_FEEDBACK NOT LIKE 'Standard order%'
+  AND CUSTOMER_FEEDBACK IS NOT NULL
+LIMIT 10;
+
+-- Pre-computed version (same result, instant — built during setup)
 SELECT ORDER_ID, original_feedback, redacted_feedback
 FROM HRZN_DB.HRZN_SCH.CUSTOMER_FEEDBACK_REDACTED
 WHERE original_feedback NOT LIKE 'Standard order%'
-LIMIT 5;
+LIMIT 10;
 
 /*=============================================================================
   PARTIAL REDACTION — Choose Which PII Types to Redact
