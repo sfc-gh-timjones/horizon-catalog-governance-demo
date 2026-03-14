@@ -5,13 +5,13 @@
   "Define who can see which data."
 
   What you'll show:
-    - Row access policy: DATA_USER only sees Massachusetts customers
+    - Row access policy: DATA_USER only sees CA, TX, MA customers
     - Aggregation policy: must aggregate with 100+ group size, no individual records
     - Projection policy: ZIP can't be projected, but CAN be used in WHERE
 
   Setup references:
     - RBAC roles + grants:               0-setup.sql lines 31-47
-    - Row policy mapping table:           0-setup.sql lines 100-104
+    - Row policy mapping table:           0-setup.sql lines 100-107
     - State-based row access policy:      2-data-governor.sql lines 333-345
     - Aggregation policy:                 2-data-governor.sql lines 360-369
     - Projection policy:                  2-data-governor.sql lines 392-401
@@ -24,8 +24,8 @@ USE SCHEMA HRZN_SCH;
 /*=============================================================================
   ROW ACCESS POLICY — Geographic Filtering
   
-  The ROW_POLICY_MAP table maps HRZN_DATA_USER → MA (Massachusetts).
-  The governor sees all 1,000 customers. The data user sees only MA.
+  The ROW_POLICY_MAP table maps HRZN_DATA_USER → CA, TX, MA.
+  The governor sees all 1,000 customers. The data user sees only those 3 states.
   
   Setup ref: 2-data-governor.sql lines 333-345
 =============================================================================*/
@@ -39,7 +39,7 @@ SELECT STATE, COUNT(*) AS customer_count
 FROM HRZN_DB.HRZN_SCH.CUSTOMER
 GROUP BY STATE ORDER BY customer_count DESC;
 
--- DATA USER: Only Massachusetts
+-- DATA USER: Only CA, TX, MA
 USE ROLE HRZN_DATA_USER;
 SELECT STATE, COUNT(*) AS customer_count
 FROM HRZN_DB.HRZN_SCH.CUSTOMER

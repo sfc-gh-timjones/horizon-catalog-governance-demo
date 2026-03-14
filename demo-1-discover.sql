@@ -80,20 +80,35 @@ ORDER BY
 /*=============================================================================
   LIVE AI CLASSIFICATION
   
-  Run Snowflake's AI classifier in real time against the CUSTOMER table.
-  It scans every column's values and recommends a semantic category,
-  privacy category, and confidence level — no manual tagging needed.
+  Two ways to classify data in Snowflake:
   
+  1. AUTOMATIC — A Classification Profile runs on a schedule and
+     automatically tags new/changed columns. That's how the CUSTOMER
+     table was originally tagged during setup.
+     (Setup ref: 2-data-governor.sql lines 55-105)
+  
+  2. MANUAL — SYSTEM$CLASSIFY runs classification on-demand.
+     Without 'auto_tag', it returns recommendations only (read-only).
+     With 'auto_tag': true, it permanently applies the tags.
+  
+  Below we run it manually WITHOUT auto_tag — a safe, live preview.
   A custom regex classifier for credit card formats (Mastercard, Amex)
-  is also included to enhance detection accuracy.
+  is included to enhance detection accuracy.
   
   Setup ref: 2-data-governor.sql lines 148-165
 =============================================================================*/
 
+-- Read-only: returns recommendations without tagging anything
 CALL SYSTEM$CLASSIFY(
     'HRZN_DB.HRZN_SCH.CUSTOMER',
     {'custom_classifiers': ['HRZN_DB.CLASSIFIERS.CREDITCARD']}
 );
+
+-- Uncomment below to permanently apply tags:
+-- CALL SYSTEM$CLASSIFY(
+--     'HRZN_DB.HRZN_SCH.CUSTOMER',
+--     {'custom_classifiers': ['HRZN_DB.CLASSIFIERS.CREDITCARD'], 'auto_tag': true}
+-- );
 
 SELECT
     col.key AS COLUMN_NAME,
