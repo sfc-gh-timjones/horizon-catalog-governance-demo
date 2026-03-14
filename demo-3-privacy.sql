@@ -11,6 +11,7 @@
     - Partial redaction (choose which PII types to redact)
     - Secure view: governor sees PII, analyst sees pre-redacted version
     - Sentiment analysis on redacted data (safe analytics without PII exposure)
+    - Differential privacy: noisy aggregates, row-level access blocked, privacy budget
 
   Setup references:
     - Tag-based masking policies (4 types):  2-data-governor.sql lines 186-243
@@ -18,6 +19,7 @@
     - Customer feedback data + AI_REDACT:    5-ai-redact.sql lines 20-97
     - Secure view creation:                  5-ai-redact.sql lines 143-155
     - Sentiment analysis:                    5-ai-redact.sql lines 108-120
+    - Differential privacy setup:             0-setup.sql (EMPLOYEES + privacy policy)
 ***************************************************************************************************/
 
 USE WAREHOUSE HRZN_WH;
@@ -146,6 +148,51 @@ USE ROLE HRZN_DATA_GOVERNOR;
 SELECT ORDER_ID, CUSTOMER_FEEDBACK
 FROM HRZN_DB.HRZN_SCH.CUSTOMER_FEEDBACK_SECURE
 WHERE CUSTOMER_FEEDBACK NOT LIKE 'Standard order%' LIMIT 3;
+
+/*=============================================================================
+  DIFFERENTIAL PRIVACY — Noisy Aggregates + Privacy Budget
+  
+  The EMPLOYEES table is protected by a privacy policy.
+  Individual rows are blocked — only aggregates are allowed.
+  Noise is injected automatically to prevent re-identification.
+  A weekly privacy budget limits how many queries analysts can run.
+  
+  Setup ref: 0-setup.sql (EMPLOYEES table + privacy policy + domains)
+=============================================================================*/
+
+-- GOVERNOR: exact results, no noise
+USE ROLE HRZN_DATA_GOVERNOR;
+
+SELECT
+    DEPARTMENT,
+    COUNT(DISTINCT EMPLOYEE_ID) AS headcount,
+    ROUND(AVG(SALARY), 2) AS avg_salary,
+    ROUND(AVG(BONUS), 2) AS avg_bonus
+FROM HRZN_DB.HRZN_SCH.EMPLOYEES
+GROUP BY DEPARTMENT
+ORDER BY avg_salary DESC;
+
+-- DATA USER: individual records blocked
+USE ROLE HRZN_DATA_USER;
+
+SELECT * FROM HRZN_DB.HRZN_SCH.EMPLOYEES LIMIT 5;
+-- ^ Fails: "Query not supported" — row-level access is blocked
+
+-- DATA USER: noisy aggregates with confidence intervals
+SELECT
+    department,
+    COUNT(salary) AS headcount,
+    DP_INTERVAL_LOW(headcount) AS headcount_low,
+    DP_INTERVAL_HIGH(headcount) AS headcount_high
+FROM (
+    SELECT EMPLOYEE_ID, ANY_VALUE(DEPARTMENT) AS department, ANY_VALUE(SALARY) AS salary
+    FROM HRZN_DB.HRZN_SCH.EMPLOYEES
+    GROUP BY EMPLOYEE_ID
+)
+GROUP BY department;
+
+-- Privacy budget: how many queries remain before the weekly reset?
+SELECT * FROM TABLE(SNOWFLAKE.DATA_PRIVACY.ESTIMATE_REMAINING_DP_AGGREGATES('HRZN_DB.HRZN_SCH.EMPLOYEES'));
 
 -- Data user sees redacted version
 USE ROLE HRZN_DATA_USER;
