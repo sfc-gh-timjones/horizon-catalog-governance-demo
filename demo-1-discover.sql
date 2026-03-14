@@ -6,8 +6,8 @@
 
   What you'll show:
     - AI classification tagged every column with a sensitivity level
-    - Custom classifiers detect business-specific patterns (credit cards)
     - Tag propagation: labels follow data through CTAS automatically
+    - Custom classifiers detect business-specific patterns (credit cards)
 
   Setup references:
     - AI classification + tag creation:   2-data-governor.sql lines 38-119
@@ -50,18 +50,6 @@ ORDER BY
     END, COLUMN_NAME;
 
 /*=============================================================================
-  CUSTOM CLASSIFIER — Credit Card Detection
-  
-  Beyond built-in AI, you can add regex-based classifiers
-  for business-specific patterns (Mastercard, Amex, etc.)
-  
-  Setup ref: 2-data-governor.sql lines 148-165
-=============================================================================*/
-
-SELECT SYSTEM$GET_TAG('snowflake.core.semantic_category','HRZN_DB.HRZN_SCH.CUSTOMER.CREDITCARD','column')
-    AS creditcard_classification;
-
-/*=============================================================================
   TAG PROPAGATION — Labels Follow the Data
   
   CUSTOMER_COPY was created with CREATE TABLE ... AS SELECT * FROM CUSTOMER.
@@ -70,6 +58,9 @@ SELECT SYSTEM$GET_TAG('snowflake.core.semantic_category','HRZN_DB.HRZN_SCH.CUSTO
   
   Setup ref: 2-data-governor.sql lines 288-306
 =============================================================================*/
+
+CREATE OR REPLACE TABLE HRZN_DB.HRZN_SCH.CUSTOMER_COPY AS
+SELECT * FROM HRZN_DB.HRZN_SCH.CUSTOMER;
 
 SELECT COLUMN_NAME, TAG_VALUE AS CLASSIFICATION_LEVEL
 FROM TABLE(
@@ -83,3 +74,24 @@ ORDER BY
         WHEN 'PII' THEN 1 WHEN 'RESTRICTED' THEN 2
         WHEN 'SENSITIVE' THEN 3 WHEN 'INTERNAL' THEN 4
     END, COLUMN_NAME;
+
+/*=============================================================================
+  CUSTOM CLASSIFIER — Credit Card Detection
+  
+  The AI classification above tagged CREDITCARD as PII — but it doesn't know
+  *what kind* of card data it is. We built a custom regex classifier that
+  detects Mastercard, Amex, Visa, etc. and tagged it accordingly.
+  
+  This query proves the custom classifier's tag landed on the column:
+  
+  Setup ref: 2-data-governor.sql lines 148-165
+=============================================================================*/
+
+SELECT COLUMN_NAME, TAG_VALUE AS CLASSIFICATION_LEVEL
+FROM TABLE(
+    INFORMATION_SCHEMA.TAG_REFERENCES_ALL_COLUMNS(
+        'HRZN_DB.HRZN_SCH.CUSTOMER', 'table'
+    )
+)
+WHERE TAG_NAME = 'DATA_CLASSIFICATION'
+  AND COLUMN_NAME = 'CREDITCARD';
