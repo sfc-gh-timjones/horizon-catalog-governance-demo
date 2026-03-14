@@ -62,6 +62,8 @@ ORDER BY
 CREATE OR REPLACE TABLE HRZN_DB.HRZN_SCH.CUSTOMER_COPY AS
 SELECT * FROM HRZN_DB.HRZN_SCH.CUSTOMER;
 
+SELECT TOP 50 * FROM HRZN_DB.HRZN_SCH.CUSTOMER_COPY;
+
 SELECT COLUMN_NAME, TAG_VALUE AS CLASSIFICATION_LEVEL
 FROM TABLE(
     INFORMATION_SCHEMA.TAG_REFERENCES_ALL_COLUMNS(
@@ -78,20 +80,17 @@ ORDER BY
 /*=============================================================================
   CUSTOM CLASSIFIER — Credit Card Detection
   
-  The AI classification above tagged CREDITCARD as PII — but it doesn't know
-  *what kind* of card data it is. We built a custom regex classifier that
-  detects Mastercard, Amex, Visa, etc. and tagged it accordingly.
-  
-  This query proves the custom classifier's tag landed on the column:
+  The built-in AI classified columns by sensitivity level. But we also
+  built a custom regex classifier that detects specific card formats
+  (Mastercard, Amex, etc.) and tags the column via SEMANTIC_CATEGORY.
   
   Setup ref: 2-data-governor.sql lines 148-165
 =============================================================================*/
 
-SELECT COLUMN_NAME, TAG_VALUE AS CLASSIFICATION_LEVEL
+SELECT COLUMN_NAME, TAG_NAME, TAG_VALUE
 FROM TABLE(
     INFORMATION_SCHEMA.TAG_REFERENCES_ALL_COLUMNS(
         'HRZN_DB.HRZN_SCH.CUSTOMER', 'table'
     )
 )
-WHERE TAG_NAME = 'DATA_CLASSIFICATION'
-  AND COLUMN_NAME = 'CREDITCARD';
+WHERE COLUMN_NAME = 'CREDITCARD';
