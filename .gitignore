@@ -4,15 +4,7 @@ __pycache__/
 *.swp
 *.swo
 *~
-.idea/
-.vscode/
-*.log
-.DS_Store
-*.pyc
-__pycache__/
-*.swp
-*.swo
-*~
 .env
 .vscode/
 .idea/
+*.log
