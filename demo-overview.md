@@ -67,7 +67,7 @@ that apply to tables, views, AI models, and apps — all from a single control p
 
 - System Data Metric Functions (DMFs) measure null counts, uniqueness, duplicates, and row counts out of the box
 - Custom DMFs extend quality checks with business rules (e.g., regex-based invalid email detection)
-- DMFs run on automated schedules (every 5 minutes in this demo) — no external orchestrator needed
+- DMFs run on automated schedules (TRIGGER_ON_CHANGES in this demo) — no external orchestrator needed
 - Historical results are stored in `DATA_QUALITY_MONITORING_RESULTS` for trend analysis and alerting
 
 **Demo script:** [`demo-4-quality.sql`](demo-4-quality.sql)

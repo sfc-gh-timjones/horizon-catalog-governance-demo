@@ -58,6 +58,7 @@ GROUP BY STATE ORDER BY customer_count DESC;
   
   Setup ref: 2-data-governor.sql lines 360-369
   Note: Re-applying policy for this demo section.
+  ⚠ If script stops before cleanup, re-run from line 77 or run 0-setup.sql.
 =============================================================================*/
 
 USE ROLE HRZN_DATA_GOVERNOR;
@@ -87,6 +88,7 @@ ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS UNSET AGGREGATION POLICY;
   
   Setup ref: 2-data-governor.sql lines 392-401
   Note: Re-applying policy for this demo section.
+  ⚠ If script stops before cleanup, re-run from line 111 or run 0-setup.sql.
 =============================================================================*/
 
 USE ROLE HRZN_DATA_GOVERNOR;

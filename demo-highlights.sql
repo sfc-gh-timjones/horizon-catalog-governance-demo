@@ -75,9 +75,9 @@ FROM HRZN_DB.HRZN_SCH.CUSTOMER LIMIT 10;
 /*=============================================================================
   3. ROW ACCESS POLICIES — Geographic Filtering
   
-  HRZN_DATA_USER can only see Massachusetts (MA) customers.
+  HRZN_DATA_USER can only see CA, TX, and MA customers.
   The governor sees all 1,000 customers across all states.
-  Controlled by a simple role→state mapping table.
+  Controlled by a simple role→state mapping table (ROW_POLICY_MAP).
   
   Setup ref: 2-data-governor.sql lines 333-345
 =============================================================================*/
@@ -88,7 +88,7 @@ SELECT STATE, COUNT(*) AS customer_count
 FROM HRZN_DB.HRZN_SCH.CUSTOMER
 GROUP BY STATE ORDER BY customer_count DESC;
 
--- DATA USER: Only Massachusetts
+-- DATA USER: Only CA, TX, MA
 USE ROLE HRZN_DATA_USER;
 SELECT STATE, COUNT(*) AS customer_count
 FROM HRZN_DB.HRZN_SCH.CUSTOMER
@@ -133,6 +133,7 @@ SELECT ID, FIRST_NAME, EMAIL, SSN, PHONE_NUMBER FROM HRZN_DB.HRZN_SCH.CUSTOMER_C
   
   Setup ref: 2-data-governor.sql lines 360-369
   Note: Policy was unset for later labs. Re-apply to demo:
+  ⚠ If script stops before cleanup, re-run from line 151 or run 0-setup.sql.
 =============================================================================*/
 
 USE ROLE HRZN_DATA_GOVERNOR;
@@ -160,6 +161,7 @@ ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS UNSET AGGREGATION POLICY;
   
   Setup ref: 2-data-governor.sql lines 392-401
   Note: Policy was unset for later labs. Re-apply to demo:
+  ⚠ If script stops before cleanup, re-run from line 181 or run 0-setup.sql.
 =============================================================================*/
 
 USE ROLE HRZN_DATA_GOVERNOR;
@@ -186,7 +188,7 @@ ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER MODIFY COLUMN ZIP SET TAG HRZN_DB.TAG_SCHE
 /*=============================================================================
   7. DATA QUALITY MONITORING — DMFs in Action
   
-  5 Data Metric Functions run every 5 minutes automatically.
+  5 Data Metric Functions run on TRIGGER_ON_CHANGES automatically.
   Includes a custom regex DMF that counts invalid emails.
   
   Setup ref: 1-data-engineer.sql lines 53-96

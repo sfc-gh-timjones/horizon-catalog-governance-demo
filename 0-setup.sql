@@ -204,7 +204,7 @@ GRANT SELECT ON TABLE HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS TO ROLE HRZN_IT_ADMIN;
 /*=============================================================================
   EMPLOYEES TABLE — Synthetic Data for Differential Privacy Demo
   
-  500 synthetic employees with numeric columns (salary, bonus, age).
+  2000 synthetic employees with numeric columns (salary, bonus, age).
   No external dependencies — generated entirely with GENERATOR + UNIFORM.
 =============================================================================*/
 

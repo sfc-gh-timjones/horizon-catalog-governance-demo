@@ -13,7 +13,7 @@
   Setup references:
     - System DMFs attached to CUSTOMER:     1-data-engineer.sql lines 55-61
     - Custom INVALID_EMAIL_COUNT DMF:       1-data-engineer.sql lines 73-80
-    - DMF scheduling (5 minute):            1-data-engineer.sql lines 86-89
+    - DMF scheduling (trigger on changes):    1-data-engineer.sql lines 86-89
     - DMF schedule verification:            1-data-engineer.sql lines 93-96
 ***************************************************************************************************/
 
@@ -26,7 +26,7 @@ USE SCHEMA HRZN_SCH;
   LIVE DATA QUALITY STATS
   
   Call system and custom DMFs inline to see current data quality.
-  These same functions run automatically every 5 minutes on schedule.
+  These same functions run automatically on a TRIGGER_ON_CHANGES schedule.
   
   Setup ref: 1-data-engineer.sql lines 55-80
 =============================================================================*/
@@ -40,7 +40,7 @@ SELECT
 /*=============================================================================
   AUTOMATED SCHEDULING
   
-  All 5 DMFs run every 5 minutes. No external orchestrator needed.
+  All 5 DMFs run on TRIGGER_ON_CHANGES. No external orchestrator needed.
   
   Setup ref: 1-data-engineer.sql lines 86-96
 =============================================================================*/
