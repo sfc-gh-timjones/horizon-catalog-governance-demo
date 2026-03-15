@@ -13,9 +13,9 @@
     - Historical monitoring results for trend analysis
 
   Setup references:
-    - SALES_LEADS table creation:             0-setup.sql
-    - DMFs + Expectations on SALES_LEADS:     1-data-engineer.sql
-    - Custom DEAL_AMOUNT_OUT_OF_RANGE DMF:    1-data-engineer.sql
+    - SALES_LEADS table creation:             0-setup.sql lines 216-296
+    - DMFs + Expectations on SALES_LEADS:     1-data-engineer.sql lines 59-109
+    - Custom DEAL_AMOUNT_OUT_OF_RANGE DMF:    1-data-engineer.sql lines 96-109
 ***************************************************************************************************/
 
 USE ROLE HRZN_DATA_ENGINEER;
@@ -28,6 +28,8 @@ USE SCHEMA HRZN_SCH;
   
   SALES_LEADS has 3000 synthetic CRM records with quality issues baked in
   that increase linearly (later rows are dirtier). Let's look at the mess.
+  
+  Setup ref: 0-setup.sql lines 216-296 (SALES_LEADS table)
 =============================================================================*/
 
 -- Quick overview: total rows and a sample
@@ -71,6 +73,8 @@ ORDER BY LEAD_ID;
   
   System and custom DMFs run against live data and return counts of
   quality violations. These are the same functions that run on schedule.
+  
+  Setup ref: 1-data-engineer.sql lines 68-109 (DMFs + expectations)
 =============================================================================*/
 
 SELECT
@@ -86,6 +90,8 @@ SELECT
   ACT 3: DMF REGISTRY — WHAT'S ATTACHED?
   
   Show all DMFs registered on SALES_LEADS, their schedule, and status.
+  
+  Setup ref: 1-data-engineer.sql lines 59-109 (schedule + DMF attachment)
 =============================================================================*/
 
 SELECT metric_name, ref_entity_name, schedule, schedule_status
@@ -118,6 +124,8 @@ FROM TABLE(SYSTEM$EVALUATE_DATA_QUALITY_EXPECTATIONS(
   Every scheduled DMF run stores its result. Over time this becomes a
   trend line showing whether data quality is improving or degrading.
   Results appear after the first TRIGGER_ON_CHANGES run completes.
+  
+  Setup ref: 1-data-engineer.sql line 60 (TRIGGER_ON_CHANGES schedule)
 =============================================================================*/
 
 SELECT
@@ -135,6 +143,7 @@ ORDER BY measurement_time DESC;
   
   Simulate a bad data load. Insert 200 rows of garbage, then re-run the
   expectations to show how the report card catches regressions in real time.
+  ⚠ Cleanup at end restores original 3000 rows for repeatability.
 =============================================================================*/
 
 INSERT INTO HRZN_DB.HRZN_SCH.SALES_LEADS
