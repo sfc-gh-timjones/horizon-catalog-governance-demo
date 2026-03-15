@@ -202,6 +202,105 @@ GRANT SELECT ON TABLE HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS TO ROLE HRZN_DATA_USER;
 GRANT SELECT ON TABLE HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS TO ROLE HRZN_IT_ADMIN;
 
 /*=============================================================================
+  SALES_LEADS TABLE — Synthetic Data for Data Quality Demo
+  
+  3000 synthetic CRM leads with intentional quality issues that increase
+  linearly by row number, so later rows are progressively dirtier:
+    ~120 NULL emails         (every 25th row)
+    ~100 blank phone numbers (every 30th row)
+    ~60 duplicate emails     (every 40th row reuses a fixed email)
+    ~60 invalid statuses     (every 50th row gets garbage values)
+    ~40 out-of-range deals   (every 75th row: negative or > $1M)
+  No external dependencies — generated entirely with GENERATOR + expressions.
+=============================================================================*/
+
+CREATE OR REPLACE TABLE HRZN_DB.HRZN_SCH.SALES_LEADS (
+    LEAD_ID INT,
+    LEAD_NAME VARCHAR,
+    EMAIL VARCHAR,
+    PHONE VARCHAR,
+    COMPANY VARCHAR,
+    STATUS VARCHAR,
+    DEAL_AMOUNT FLOAT,
+    LEAD_SOURCE VARCHAR,
+    CREATED_AT TIMESTAMP
+) AS
+WITH raw_data AS (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY SEQ4()) AS RN,
+        SEQ4() AS S
+    FROM TABLE(GENERATOR(ROWCOUNT => 3000))
+)
+SELECT
+    RN AS LEAD_ID,
+
+    'Lead_' || RN AS LEAD_NAME,
+
+    CASE
+        WHEN MOD(RN, 25) = 0 THEN NULL
+        WHEN MOD(RN, 40) = 0 THEN 'duplicate_lead@example.com'
+        ELSE 'lead_' || RN || '@example.com'
+    END AS EMAIL,
+
+    CASE
+        WHEN MOD(RN, 30) = 0 THEN ''
+        ELSE '555-' || LPAD(MOD(RN * 7, 10000)::VARCHAR, 4, '0')
+    END AS PHONE,
+
+    CASE MOD(RN, 8)
+        WHEN 0 THEN 'Acme Corp'
+        WHEN 1 THEN 'Globex Inc'
+        WHEN 2 THEN 'Initech'
+        WHEN 3 THEN 'Umbrella LLC'
+        WHEN 4 THEN 'Stark Industries'
+        WHEN 5 THEN 'Wayne Enterprises'
+        WHEN 6 THEN 'Cyberdyne Systems'
+        WHEN 7 THEN 'Soylent Corp'
+    END AS COMPANY,
+
+    CASE
+        WHEN MOD(RN, 50) = 0 THEN
+            CASE MOD(RN, 150)
+                WHEN 0   THEN 'YOLO'
+                WHEN 50  THEN 'idk'
+                WHEN 100 THEN 'maybe_later'
+            END
+        ELSE
+            CASE MOD(RN, 5)
+                WHEN 0 THEN 'New'
+                WHEN 1 THEN 'Contacted'
+                WHEN 2 THEN 'Qualified'
+                WHEN 3 THEN 'Proposal'
+                WHEN 4 THEN 'Closed Won'
+            END
+    END AS STATUS,
+
+    CASE
+        WHEN MOD(RN, 75) = 0 THEN
+            CASE WHEN MOD(RN, 150) = 0 THEN -5000.00
+            ELSE 2500000.00
+            END
+        ELSE ROUND(1000 + UNIFORM(0::FLOAT, 99000::FLOAT, RANDOM()), 2)
+    END AS DEAL_AMOUNT,
+
+    CASE MOD(RN, 5)
+        WHEN 0 THEN 'Website'
+        WHEN 1 THEN 'Referral'
+        WHEN 2 THEN 'Conference'
+        WHEN 3 THEN 'Cold Call'
+        WHEN 4 THEN 'Partner'
+    END AS LEAD_SOURCE,
+
+    DATEADD(minute, -RN * 15, CURRENT_TIMESTAMP()) AS CREATED_AT
+
+FROM raw_data;
+
+GRANT ALL ON TABLE HRZN_DB.HRZN_SCH.SALES_LEADS TO ROLE HRZN_DATA_GOVERNOR;
+GRANT SELECT ON TABLE HRZN_DB.HRZN_SCH.SALES_LEADS TO ROLE HRZN_DATA_USER;
+GRANT SELECT ON TABLE HRZN_DB.HRZN_SCH.SALES_LEADS TO ROLE HRZN_IT_ADMIN;
+GRANT ALL ON TABLE HRZN_DB.HRZN_SCH.SALES_LEADS TO ROLE HRZN_DATA_ENGINEER;
+
+/*=============================================================================
   EMPLOYEES TABLE — Synthetic Data for Differential Privacy Demo
   
   2000 synthetic employees with numeric columns (salary, bonus, age).
@@ -323,6 +422,8 @@ SELECT 'Setup complete. HRZN_DB ready with CUSTOMER (' ||
        (SELECT COUNT(*) FROM HRZN_DB.HRZN_SCH.CUSTOMER) || 
        ' rows), CUSTOMER_ORDERS (' || 
        (SELECT COUNT(*) FROM HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS) || 
+       ' rows), SALES_LEADS (' ||
+       (SELECT COUNT(*) FROM HRZN_DB.HRZN_SCH.SALES_LEADS) ||
        ' rows), EMPLOYEES (' ||
        (SELECT COUNT(*) FROM HRZN_DB.HRZN_SCH.EMPLOYEES) ||
        ' rows, DP-protected).' AS status;

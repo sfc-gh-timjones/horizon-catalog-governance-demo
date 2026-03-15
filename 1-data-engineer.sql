@@ -45,63 +45,102 @@ USE ROLE HRZN_DATA_ANALYST;
 SELECT * FROM HRZN_DB.HRZN_SCH.CUSTOMER LIMIT 5;
 
 /*=============================================================================
-  DATA QUALITY MONITORING - System DMFs
+  DATA QUALITY MONITORING — SALES_LEADS Table
   
-  Attach system DMFs to measure accuracy, uniqueness, and volume.
+  The SALES_LEADS table has intentional quality issues baked in:
+    ~120 NULL emails, ~100 blank phones, ~60 duplicate emails,
+    ~60 invalid statuses, ~40 out-of-range deal amounts.
+  
+  We attach system DMFs + expectations to create automated pass/fail
+  quality checks, plus a custom DMF for business-rule validation.
 =============================================================================*/
 
 USE ROLE HRZN_DATA_ENGINEER;
 
-ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER
+ALTER TABLE HRZN_DB.HRZN_SCH.SALES_LEADS
     SET DATA_METRIC_SCHEDULE = 'TRIGGER_ON_CHANGES';
 
-ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER ADD DATA METRIC FUNCTION SNOWFLAKE.CORE.NULL_COUNT ON (EMAIL);
-ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER ADD DATA METRIC FUNCTION SNOWFLAKE.CORE.UNIQUE_COUNT ON (EMAIL);
-ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER ADD DATA METRIC FUNCTION SNOWFLAKE.CORE.DUPLICATE_COUNT ON (EMAIL);
-ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER ADD DATA METRIC FUNCTION SNOWFLAKE.CORE.ROW_COUNT ON ();
+/*-- System DMFs with Expectations ------------------------------------------
+  Each DMF measures a quality dimension. The EXPECTATION clause defines
+  the pass/fail threshold. When the DMF value violates the expectation,
+  Snowflake records it as an expectation violation.
+---------------------------------------------------------------------------*/
 
-SELECT SNOWFLAKE.CORE.NULL_COUNT(SELECT EMAIL FROM HRZN_DB.HRZN_SCH.CUSTOMER);
-SELECT SNOWFLAKE.CORE.UNIQUE_COUNT(SELECT EMAIL FROM HRZN_DB.HRZN_SCH.CUSTOMER);
-SELECT SNOWFLAKE.CORE.DUPLICATE_COUNT(SELECT EMAIL FROM HRZN_DB.HRZN_SCH.CUSTOMER) AS duplicate_count;
+ALTER TABLE HRZN_DB.HRZN_SCH.SALES_LEADS
+    ADD DATA METRIC FUNCTION SNOWFLAKE.CORE.NULL_COUNT ON (EMAIL)
+    EXPECTATION no_null_emails (VALUE = 0);
 
-SHOW PARAMETERS LIKE 'DATA_METRIC_SCHEDULE' IN TABLE HRZN_DB.HRZN_SCH.CUSTOMER;
+ALTER TABLE HRZN_DB.HRZN_SCH.SALES_LEADS
+    ADD DATA METRIC FUNCTION SNOWFLAKE.CORE.BLANK_COUNT ON (PHONE)
+    EXPECTATION no_blank_phones (VALUE = 0);
 
-/*=============================================================================
-  CUSTOM DMF - Invalid Email Count (Regex)
-=============================================================================*/
+ALTER TABLE HRZN_DB.HRZN_SCH.SALES_LEADS
+    ADD DATA METRIC FUNCTION SNOWFLAKE.CORE.DUPLICATE_COUNT ON (EMAIL)
+    EXPECTATION no_duplicate_emails (VALUE = 0);
 
-CREATE OR REPLACE DATA METRIC FUNCTION HRZN_DB.HRZN_SCH.INVALID_EMAIL_COUNT(IN_TABLE TABLE(IN_COL STRING))
+ALTER TABLE HRZN_DB.HRZN_SCH.SALES_LEADS
+    ADD DATA METRIC FUNCTION SNOWFLAKE.CORE.ROW_COUNT ON ()
+    EXPECTATION minimum_lead_volume (VALUE >= 2500);
+
+ALTER TABLE HRZN_DB.HRZN_SCH.SALES_LEADS
+    ADD DATA METRIC FUNCTION SNOWFLAKE.CORE.ACCEPTED_VALUES ON (
+        STATUS,
+        STATUS -> STATUS IN ('New', 'Contacted', 'Qualified', 'Proposal', 'Closed Won')
+    )
+    EXPECTATION no_invalid_statuses (VALUE = 0);
+
+/*-- Custom DMF — Deal Amount Out of Range ----------------------------------
+  Business rule: deal amounts must be between $0 and $1,000,000.
+  Anything outside that range is a data quality issue.
+---------------------------------------------------------------------------*/
+
+CREATE OR REPLACE DATA METRIC FUNCTION HRZN_DB.HRZN_SCH.DEAL_AMOUNT_OUT_OF_RANGE(
+    IN_TABLE TABLE(IN_COL FLOAT)
+)
 RETURNS NUMBER
 AS
-'SELECT COUNT_IF(FALSE = (IN_COL regexp ''^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,4}$'')) FROM IN_TABLE';
+$$
+    SELECT COUNT_IF(IN_COL < 0 OR IN_COL > 1000000) FROM IN_TABLE
+$$;
 
-GRANT ALL ON FUNCTION HRZN_DB.HRZN_SCH.INVALID_EMAIL_COUNT(TABLE(STRING)) TO ROLE PUBLIC;
+GRANT USAGE ON FUNCTION HRZN_DB.HRZN_SCH.DEAL_AMOUNT_OUT_OF_RANGE(TABLE(FLOAT)) TO ROLE PUBLIC;
 
-SELECT HRZN_DB.HRZN_SCH.INVALID_EMAIL_COUNT(SELECT EMAIL FROM HRZN_DB.HRZN_SCH.CUSTOMER) AS INVALID_EMAIL_COUNT;
+ALTER TABLE HRZN_DB.HRZN_SCH.SALES_LEADS
+    ADD DATA METRIC FUNCTION HRZN_DB.HRZN_SCH.DEAL_AMOUNT_OUT_OF_RANGE ON (DEAL_AMOUNT)
+    EXPECTATION no_out_of_range_deals (VALUE = 0);
 
-/*=============================================================================
-  DMF SCHEDULING (trigger on changes — no idle credit burn)
-=============================================================================*/
-
-ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER SET DATA_METRIC_SCHEDULE = 'TRIGGER_ON_CHANGES';
-
-ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER
-    ADD DATA METRIC FUNCTION HRZN_DB.HRZN_SCH.INVALID_EMAIL_COUNT ON (EMAIL);
-
-SHOW PARAMETERS LIKE 'DATA_METRIC_SCHEDULE' IN TABLE HRZN_DB.HRZN_SCH.CUSTOMER;
+/*-- Verify DMF schedule + associations ------------------------------------*/
 
 SELECT metric_name, ref_entity_name, schedule, schedule_status
 FROM TABLE(information_schema.data_metric_function_references(
-    ref_entity_name => 'HRZN_DB.HRZN_SCH.CUSTOMER',
+    ref_entity_name => 'HRZN_DB.HRZN_SCH.SALES_LEADS',
     ref_entity_domain => 'TABLE'));
 
+/*-- Inline DMF check — see current quality stats --------------------------*/
+
 SELECT
-    change_commit_time,
+    (SELECT COUNT(*) FROM HRZN_DB.HRZN_SCH.SALES_LEADS)                              AS total_rows,
+    SNOWFLAKE.CORE.NULL_COUNT(SELECT EMAIL FROM HRZN_DB.HRZN_SCH.SALES_LEADS)        AS null_emails,
+    SNOWFLAKE.CORE.BLANK_COUNT(SELECT PHONE FROM HRZN_DB.HRZN_SCH.SALES_LEADS)       AS blank_phones,
+    SNOWFLAKE.CORE.DUPLICATE_COUNT(SELECT EMAIL FROM HRZN_DB.HRZN_SCH.SALES_LEADS)   AS duplicate_emails,
+    HRZN_DB.HRZN_SCH.DEAL_AMOUNT_OUT_OF_RANGE(
+        SELECT DEAL_AMOUNT FROM HRZN_DB.HRZN_SCH.SALES_LEADS
+    )                                                                                 AS bad_deal_amounts;
+
+/*-- Evaluate expectations — pass/fail report card -------------------------*/
+
+SELECT *
+FROM TABLE(SYSTEM$EVALUATE_DATA_QUALITY_EXPECTATIONS(
+    REF_ENTITY_NAME => 'HRZN_DB.HRZN_SCH.SALES_LEADS'));
+
+/*-- Historical results (populated after first scheduled run) ---------------*/
+
+SELECT
     measurement_time,
-    table_schema,
     table_name,
     metric_name,
     value
 FROM SNOWFLAKE.LOCAL.DATA_QUALITY_MONITORING_RESULTS
 WHERE table_database = 'HRZN_DB'
+    AND table_name = 'SALES_LEADS'
 ORDER BY measurement_time DESC;

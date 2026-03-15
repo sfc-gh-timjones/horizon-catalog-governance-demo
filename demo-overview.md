@@ -63,15 +63,18 @@ that apply to tables, views, AI models, and apps — all from a single control p
 ---
 
 ## 4. Data Quality & Trust
-**"Continuously validate data quality."**
+**"Continuously validate data quality with DMFs + Expectations."**
 
-- System Data Metric Functions (DMFs) measure null counts, uniqueness, duplicates, and row counts out of the box
-- Custom DMFs extend quality checks with business rules (e.g., regex-based invalid email detection)
-- DMFs run on automated schedules (TRIGGER_ON_CHANGES in this demo) — no external orchestrator needed
-- Historical results are stored in `DATA_QUALITY_MONITORING_RESULTS` for trend analysis and alerting
+- Dedicated `SALES_LEADS` table: 3000 synthetic CRM records with intentional quality issues that increase linearly (NULLs, blanks, duplicates, invalid statuses, out-of-range amounts)
+- System DMFs (NULL_COUNT, BLANK_COUNT, DUPLICATE_COUNT, ROW_COUNT, ACCEPTED_VALUES) measure quality dimensions automatically
+- Custom DMF (`DEAL_AMOUNT_OUT_OF_RANGE`) enforces business rules: deal amounts must be $0–$1M
+- EXPECTATION clauses on each DMF define pass/fail thresholds (e.g., `VALUE = 0` for null emails)
+- `SYSTEM$EVALUATE_DATA_QUALITY_EXPECTATIONS` produces a one-shot report card showing which expectations pass and which fail
+- Inject 200 rows of garbage data mid-demo, then re-evaluate to show how expectations catch regressions in real time
+- Historical results stored in `DATA_QUALITY_MONITORING_RESULTS` for trend analysis
 
 **Demo script:** [`demo-4-quality.sql`](demo-4-quality.sql)
-**Setup reference:** `1-data-engineer.sql` (DMF creation + scheduling)
+**Setup reference:** `0-setup.sql` (SALES_LEADS table), `1-data-engineer.sql` (DMFs + Expectations + custom DMF)
 
 ---
 
@@ -109,7 +112,7 @@ that apply to tables, views, AI models, and apps — all from a single control p
 | Script | Purpose |
 |--------|---------|
 | `0-setup.sql` | Idempotent environment build: roles, warehouse, database, schemas, data load from S3, EMPLOYEES table + differential privacy |
-| `1-data-engineer.sql` | DMF creation, custom DMF, scheduling |
+| `1-data-engineer.sql` | DMFs + Expectations on SALES_LEADS, custom DMF, scheduling |
 | `2-data-governor.sql` | Classification, masking, row access, aggregation, projection, tag propagation |
 | `3-it-admin.sql` | Access history queries, lineage, role effectiveness |
 | `4-semantic-views.sql` | Semantic view DDL and verification |

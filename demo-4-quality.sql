@@ -2,19 +2,20 @@
 | H | O | R | I | Z | O | N |   | D | E | M | O |
 
   Demo 4: Data Quality & Trust
-  "Continuously validate data quality."
+  "Continuously validate data quality with DMFs + Expectations."
 
   What you'll show:
-    - System DMFs: null count, unique count, duplicate count, row count
-    - Custom DMF: regex-based invalid email detection
-    - Automated 5-minute scheduling
-    - Historical quality monitoring results
+    - The SALES_LEADS table: 3000 rows of intentionally messy CRM data
+    - System DMFs: NULL_COUNT, BLANK_COUNT, DUPLICATE_COUNT, ROW_COUNT, ACCEPTED_VALUES
+    - Custom DMF: DEAL_AMOUNT_OUT_OF_RANGE (business-rule validation)
+    - EXPECTATION clauses: pass/fail quality checks on each DMF
+    - SYSTEM$EVALUATE_DATA_QUALITY_EXPECTATIONS: one-shot report card
+    - Historical monitoring results for trend analysis
 
   Setup references:
-    - System DMFs attached to CUSTOMER:     1-data-engineer.sql lines 55-61
-    - Custom INVALID_EMAIL_COUNT DMF:       1-data-engineer.sql lines 73-80
-    - DMF scheduling (trigger on changes):    1-data-engineer.sql lines 86-89
-    - DMF schedule verification:            1-data-engineer.sql lines 93-96
+    - SALES_LEADS table creation:             0-setup.sql
+    - DMFs + Expectations on SALES_LEADS:     1-data-engineer.sql
+    - Custom DEAL_AMOUNT_OUT_OF_RANGE DMF:    1-data-engineer.sql
 ***************************************************************************************************/
 
 USE ROLE HRZN_DATA_ENGINEER;
@@ -23,43 +24,152 @@ USE DATABASE HRZN_DB;
 USE SCHEMA HRZN_SCH;
 
 /*=============================================================================
-  LIVE DATA QUALITY STATS
+  ACT 1: EXPLORE THE DIRTY DATA
   
-  Call system and custom DMFs inline to see current data quality.
-  These same functions run automatically on a TRIGGER_ON_CHANGES schedule.
+  SALES_LEADS has 3000 synthetic CRM records with quality issues baked in
+  that increase linearly (later rows are dirtier). Let's look at the mess.
+=============================================================================*/
+
+-- Quick overview: total rows and a sample
+SELECT COUNT(*) AS total_leads FROM HRZN_DB.HRZN_SCH.SALES_LEADS;
+SELECT * FROM HRZN_DB.HRZN_SCH.SALES_LEADS LIMIT 20;
+
+-- Spot-check: rows with NULL emails
+SELECT LEAD_ID, LEAD_NAME, EMAIL, STATUS
+FROM HRZN_DB.HRZN_SCH.SALES_LEADS
+WHERE EMAIL IS NULL
+ORDER BY LEAD_ID
+LIMIT 10;
+
+-- Spot-check: rows with blank phone numbers
+SELECT LEAD_ID, LEAD_NAME, PHONE, COMPANY
+FROM HRZN_DB.HRZN_SCH.SALES_LEADS
+WHERE PHONE = ''
+ORDER BY LEAD_ID
+LIMIT 10;
+
+-- Spot-check: duplicate emails (all pointing to same address)
+SELECT LEAD_ID, EMAIL, COMPANY, STATUS
+FROM HRZN_DB.HRZN_SCH.SALES_LEADS
+WHERE EMAIL = 'duplicate_lead@example.com'
+ORDER BY LEAD_ID;
+
+-- Spot-check: invalid statuses (not in our allowed list)
+SELECT LEAD_ID, STATUS, DEAL_AMOUNT
+FROM HRZN_DB.HRZN_SCH.SALES_LEADS
+WHERE STATUS NOT IN ('New', 'Contacted', 'Qualified', 'Proposal', 'Closed Won')
+ORDER BY LEAD_ID;
+
+-- Spot-check: out-of-range deal amounts (negative or > $1M)
+SELECT LEAD_ID, DEAL_AMOUNT, STATUS, COMPANY
+FROM HRZN_DB.HRZN_SCH.SALES_LEADS
+WHERE DEAL_AMOUNT < 0 OR DEAL_AMOUNT > 1000000
+ORDER BY LEAD_ID;
+
+/*=============================================================================
+  ACT 2: RUN INLINE DMFs — SEE THE NUMBERS
   
-  Setup ref: 1-data-engineer.sql lines 55-80
+  System and custom DMFs run against live data and return counts of
+  quality violations. These are the same functions that run on schedule.
 =============================================================================*/
 
 SELECT
-    SNOWFLAKE.CORE.NULL_COUNT(SELECT EMAIL FROM HRZN_DB.HRZN_SCH.CUSTOMER) AS null_emails,
-    SNOWFLAKE.CORE.UNIQUE_COUNT(SELECT EMAIL FROM HRZN_DB.HRZN_SCH.CUSTOMER) AS unique_emails,
-    SNOWFLAKE.CORE.DUPLICATE_COUNT(SELECT EMAIL FROM HRZN_DB.HRZN_SCH.CUSTOMER) AS duplicate_emails,
-    HRZN_DB.HRZN_SCH.INVALID_EMAIL_COUNT(SELECT EMAIL FROM HRZN_DB.HRZN_SCH.CUSTOMER) AS invalid_emails;
+    (SELECT COUNT(*) FROM HRZN_DB.HRZN_SCH.SALES_LEADS)                              AS total_rows,
+    SNOWFLAKE.CORE.NULL_COUNT(SELECT EMAIL FROM HRZN_DB.HRZN_SCH.SALES_LEADS)        AS null_emails,
+    SNOWFLAKE.CORE.BLANK_COUNT(SELECT PHONE FROM HRZN_DB.HRZN_SCH.SALES_LEADS)       AS blank_phones,
+    SNOWFLAKE.CORE.DUPLICATE_COUNT(SELECT EMAIL FROM HRZN_DB.HRZN_SCH.SALES_LEADS)   AS duplicate_emails,
+    HRZN_DB.HRZN_SCH.DEAL_AMOUNT_OUT_OF_RANGE(
+        SELECT DEAL_AMOUNT FROM HRZN_DB.HRZN_SCH.SALES_LEADS
+    )                                                                                 AS bad_deal_amounts;
 
 /*=============================================================================
-  AUTOMATED SCHEDULING
+  ACT 3: DMF REGISTRY — WHAT'S ATTACHED?
   
-  All 5 DMFs run on TRIGGER_ON_CHANGES. No external orchestrator needed.
-  
-  Setup ref: 1-data-engineer.sql lines 86-96
+  Show all DMFs registered on SALES_LEADS, their schedule, and status.
 =============================================================================*/
 
 SELECT metric_name, ref_entity_name, schedule, schedule_status
 FROM TABLE(information_schema.data_metric_function_references(
-    ref_entity_name => 'HRZN_DB.HRZN_SCH.CUSTOMER',
+    ref_entity_name => 'HRZN_DB.HRZN_SCH.SALES_LEADS',
     ref_entity_domain => 'TABLE'));
 
 /*=============================================================================
-  HISTORICAL DMF RESULTS
+  ACT 4: EXPECTATIONS REPORT CARD
   
-  Every scheduled run stores results for trend analysis and alerting.
-  Note: May need a few minutes after setup to populate.
+  This is the headline: SYSTEM$EVALUATE_DATA_QUALITY_EXPECTATIONS runs
+  every DMF with its EXPECTATION clause and returns a pass/fail verdict.
   
-  Setup ref: 1-data-engineer.sql lines 98-107
+  Our SALES_LEADS data is intentionally dirty, so most expectations FAIL:
+    - no_null_emails        → FAIL  (we have ~120 NULL emails)
+    - no_blank_phones       → FAIL  (we have ~100 blank phones)
+    - no_duplicate_emails   → FAIL  (we have ~60 duplicates)
+    - minimum_lead_volume   → PASS  (3000 rows ≥ 2500 threshold)
+    - no_invalid_statuses   → FAIL  (we have ~60 garbage statuses)
+    - no_out_of_range_deals → FAIL  (we have ~40 bad amounts)
 =============================================================================*/
 
-SELECT change_commit_time, measurement_time, table_name, metric_name, value
+SELECT *
+FROM TABLE(SYSTEM$EVALUATE_DATA_QUALITY_EXPECTATIONS(
+    REF_ENTITY_NAME => 'HRZN_DB.HRZN_SCH.SALES_LEADS'));
+
+/*=============================================================================
+  ACT 5: HISTORICAL MONITORING RESULTS
+  
+  Every scheduled DMF run stores its result. Over time this becomes a
+  trend line showing whether data quality is improving or degrading.
+  Results appear after the first TRIGGER_ON_CHANGES run completes.
+=============================================================================*/
+
+SELECT
+    measurement_time,
+    table_name,
+    metric_name,
+    value
 FROM SNOWFLAKE.LOCAL.DATA_QUALITY_MONITORING_RESULTS
 WHERE table_database = 'HRZN_DB'
+    AND table_name = 'SALES_LEADS'
 ORDER BY measurement_time DESC;
+
+/*=============================================================================
+  ACT 6: INJECT BAD DATA & RE-EVALUATE
+  
+  Simulate a bad data load. Insert 200 rows of garbage, then re-run the
+  expectations to show how the report card catches regressions in real time.
+=============================================================================*/
+
+INSERT INTO HRZN_DB.HRZN_SCH.SALES_LEADS
+    (LEAD_ID, LEAD_NAME, EMAIL, PHONE, COMPANY, STATUS, DEAL_AMOUNT, LEAD_SOURCE, CREATED_AT)
+SELECT
+    3000 + ROW_NUMBER() OVER (ORDER BY SEQ4()) AS LEAD_ID,
+    'BadLead_' || ROW_NUMBER() OVER (ORDER BY SEQ4()) AS LEAD_NAME,
+    NULL                       AS EMAIL,
+    ''                         AS PHONE,
+    'Fake Corp'                AS COMPANY,
+    'GARBAGE'                  AS STATUS,
+    -99999.99                  AS DEAL_AMOUNT,
+    'Unknown'                  AS LEAD_SOURCE,
+    CURRENT_TIMESTAMP()        AS CREATED_AT
+FROM TABLE(GENERATOR(ROWCOUNT => 200));
+
+-- Re-run the expectations — violations should jump up
+SELECT *
+FROM TABLE(SYSTEM$EVALUATE_DATA_QUALITY_EXPECTATIONS(
+    REF_ENTITY_NAME => 'HRZN_DB.HRZN_SCH.SALES_LEADS'));
+
+-- Show the new inline counts
+SELECT
+    (SELECT COUNT(*) FROM HRZN_DB.HRZN_SCH.SALES_LEADS)                              AS total_rows,
+    SNOWFLAKE.CORE.NULL_COUNT(SELECT EMAIL FROM HRZN_DB.HRZN_SCH.SALES_LEADS)        AS null_emails,
+    SNOWFLAKE.CORE.BLANK_COUNT(SELECT PHONE FROM HRZN_DB.HRZN_SCH.SALES_LEADS)       AS blank_phones,
+    SNOWFLAKE.CORE.DUPLICATE_COUNT(SELECT EMAIL FROM HRZN_DB.HRZN_SCH.SALES_LEADS)   AS duplicate_emails,
+    HRZN_DB.HRZN_SCH.DEAL_AMOUNT_OUT_OF_RANGE(
+        SELECT DEAL_AMOUNT FROM HRZN_DB.HRZN_SCH.SALES_LEADS
+    )                                                                                 AS bad_deal_amounts;
+
+/*=============================================================================
+  CLEANUP: REMOVE INJECTED ROWS
+  
+  Restore the table to its original 3000 rows so the demo is repeatable.
+=============================================================================*/
+
+DELETE FROM HRZN_DB.HRZN_SCH.SALES_LEADS WHERE LEAD_ID > 3000;
