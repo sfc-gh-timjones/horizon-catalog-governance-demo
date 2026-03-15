@@ -37,7 +37,7 @@ DROP WAREHOUSE IF EXISTS HRZN_WH;
   TEARDOWN COMPLETE
   
   All Horizon Lab objects removed:
-    HRZN_DB database and ALL contents (schemas, tables, views, functions, stages, internal stages)
+    HRZN_DB database and ALL contents (schemas, tables, views, functions, stages)
     Classification profile
     Custom roles (HRZN_DATA_GOVERNOR, HRZN_DATA_USER, HRZN_IT_ADMIN, HRZN_DATA_ENGINEER, HRZN_DATA_ANALYST)
     HRZN_WH warehouse
@@ -52,7 +52,6 @@ DROP WAREHOUSE IF EXISTS HRZN_WH;
     All row access policies (CUSTOMER_OPTIN_POLICY, CUSTOMER_STATE_RESTRICTIONS, CUSTOMER_ORDERS_STATE_RESTRICTIONS)
     All privacy policies (EMPLOYEE_PRIVACY_POLICY + privacy domains)
     All tags (DATA_CLASSIFICATION with propagation)
-    All stages (DATA_STAGE)
 =============================================================================*/
 
 SELECT 'Teardown complete. All Horizon Lab objects removed.' AS status;

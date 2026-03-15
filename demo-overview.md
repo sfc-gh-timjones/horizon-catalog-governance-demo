@@ -111,7 +111,7 @@ that apply to tables, views, AI models, and apps — all from a single control p
 
 | Script | Purpose |
 |--------|---------|
-| `0-setup.sql` | Idempotent environment build: roles, warehouse, database, schemas, internal stage, data load from bundled CSVs, EMPLOYEES table + differential privacy |
+| `0-setup.sql` | Idempotent environment build: roles, warehouse, database, schemas, data load from S3 (bundled CSVs as fallback), EMPLOYEES table + differential privacy |
 | `1-data-engineer.sql` | DMFs + Expectations on SALES_LEADS, custom DMF, scheduling |
 | `2-data-governor.sql` | Classification, masking, row access, aggregation, projection, tag propagation |
 | `3-it-admin.sql` | Access history queries, lineage, role effectiveness |
