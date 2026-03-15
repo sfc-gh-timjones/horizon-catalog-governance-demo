@@ -62,4 +62,4 @@ FROM TABLE(information_schema.data_metric_function_references(
 SELECT change_commit_time, measurement_time, table_name, metric_name, value
 FROM SNOWFLAKE.LOCAL.DATA_QUALITY_MONITORING_RESULTS
 WHERE table_database = 'HRZN_DB'
-ORDER BY change_commit_time DESC;
+ORDER BY measurement_time DESC;
