@@ -49,7 +49,7 @@ that apply to tables, views, AI models, and apps — all from a single control p
 - Tag-based dynamic masking applies multi-level protection based on classification:
   - **PII** → fully redacted (`***PII-REDACTED***`)
   - **RESTRICTED** → partial mask (last 4 characters visible)
-  - **SENSITIVE** → SHA2 hash (pseudonymized)
+  - **SENSITIVE** → partial mask (first letter visible, rest asterisks)
   - **INTERNAL** → visible (low risk)
 - Same query, same table — different results depending on the role executing it
 - AI_REDACT detects and removes 50+ PII types from unstructured text (feedback, tickets, emails) — no regex needed

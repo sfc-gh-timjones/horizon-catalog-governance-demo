@@ -54,7 +54,7 @@ ORDER BY
   The DATA_GOVERNOR sees everything. The DATA_USER sees multi-level masking:
     PII       → fully redacted
     RESTRICTED→ partial mask (last 4 chars)
-    SENSITIVE → SHA2 hash (pseudonymized)
+    SENSITIVE → partial mask (first letter visible)
     INTERNAL  → visible (low risk)
   
   One tag, one policy — automatically applied to every tagged column.

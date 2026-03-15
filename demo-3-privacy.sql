@@ -35,7 +35,7 @@ USE SCHEMA HRZN_SCH;
   
     PII        → fully redacted (***PII-REDACTED***)
     RESTRICTED → partial mask (last 4 chars visible)
-    SENSITIVE  → SHA2 hash (pseudonymized)
+    SENSITIVE  → partial mask (first letter visible, rest asterisks)
     INTERNAL   → visible (low risk)
   
   Setup ref: 2-data-governor.sql lines 186-243
