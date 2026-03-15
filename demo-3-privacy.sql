@@ -6,7 +6,7 @@
 
   What you'll show:
     - Tag-based dynamic masking: same query, different results by role
-    - Multi-level masking: PII→redacted, RESTRICTED→partial, SENSITIVE→hashed
+    - Multi-level masking: PII→redacted, RESTRICTED→partial, SENSITIVE→partial mask
     - AI_REDACT for unstructured text (50+ PII types, no regex)
     - Partial redaction (choose which PII types to redact)
     - Secure view: governor sees PII, analyst sees pre-redacted version

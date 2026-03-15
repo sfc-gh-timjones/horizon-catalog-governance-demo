@@ -24,7 +24,7 @@ USE WAREHOUSE HRZN_WH;
 SELECT
     value:"objectName"::STRING AS object_name,
     COUNT(DISTINCT query_id) AS number_of_queries
-FROM snowflake.account_usage.access_history,
+FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY,
 LATERAL FLATTEN (input => direct_objects_accessed)
 WHERE object_name ILIKE 'HRZN%'
 GROUP BY object_name
@@ -39,7 +39,7 @@ SELECT
     END AS query_type,
     COUNT(DISTINCT query_id) AS number_of_queries,
     MAX(query_start_time) AS last_query_start_time
-FROM snowflake.account_usage.access_history,
+FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY,
 LATERAL FLATTEN (input => direct_objects_accessed)
 WHERE object_name ILIKE 'HRZN%'
 GROUP BY object_name, query_type
@@ -50,8 +50,8 @@ SELECT
     qh.user_name,
     qh.query_text,
     value:objectName::string AS "TABLE"
-FROM snowflake.account_usage.query_history AS qh
-JOIN snowflake.account_usage.access_history AS ah ON qh.query_id = ah.query_id,
+FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY AS qh
+JOIN SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY AS ah ON qh.query_id = ah.query_id,
     LATERAL FLATTEN(input => ah.base_objects_accessed)
 WHERE query_type = 'SELECT'
     AND value:objectName = 'HRZN_DB.HRZN_SCH.CUSTOMER'
@@ -62,8 +62,8 @@ SELECT
     qh.user_name,
     qh.query_text,
     value:objectName::string AS "TABLE"
-FROM snowflake.account_usage.query_history AS qh
-JOIN snowflake.account_usage.access_history AS ah ON qh.query_id = ah.query_id,
+FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY AS qh
+JOIN SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY AS ah ON qh.query_id = ah.query_id,
     LATERAL FLATTEN(input => ah.base_objects_accessed)
 WHERE query_type != 'SELECT'
     AND value:objectName = 'HRZN_DB.HRZN_SCH.CUSTOMER'
@@ -79,7 +79,7 @@ SELECT
     warehouse_size,
     execution_status,
     ROUND(total_elapsed_time/1000,3) elapsed_sec
-FROM snowflake.account_usage.query_history
+FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
 ORDER BY total_elapsed_time DESC
 LIMIT 10;
 
@@ -108,7 +108,7 @@ SELECT * FROM (
         'DIRECT' AS source_column_type,
         om.value:"objectName"::varchar AS target_object_name,
         columns_modified.value:"columnName"::varchar AS target_column_name
-    FROM (SELECT * FROM snowflake.account_usage.access_history) t,
+    FROM (SELECT * FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY) t,
         LATERAL FLATTEN(input => t.OBJECTS_MODIFIED) om,
         LATERAL FLATTEN(input => om.value:"columns", outer => true) columns_modified,
         LATERAL FLATTEN(input => columns_modified.value:"directSources", outer => true) directSources
@@ -120,7 +120,7 @@ SELECT * FROM (
         'BASE' AS source_column_type,
         om.value:"objectName"::varchar AS target_object_name,
         columns_modified.value:"columnName"::varchar AS target_column_name
-    FROM (SELECT * FROM snowflake.account_usage.access_history) t,
+    FROM (SELECT * FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY) t,
         LATERAL FLATTEN(input => t.OBJECTS_MODIFIED) om,
         LATERAL FLATTEN(input => om.value:"columns", outer => true) columns_modified,
         LATERAL FLATTEN(input => columns_modified.value:"baseSources", outer => true) baseSources
@@ -152,7 +152,7 @@ WHERE (SOURCE_OBJECT_NAME = 'HRZN_DB.HRZN_SCH.CUSTOMER' OR TARGET_OBJECT_NAME = 
 SELECT
     base.value:"objectName"::STRING AS object_name,
     COUNT(DISTINCT query_id) AS number_of_queries
-FROM snowflake.account_usage.access_history,
+FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY,
 LATERAL FLATTEN (input => base_objects_accessed) base,
 LATERAL FLATTEN (input => direct_objects_accessed) direct
 WHERE 1=1

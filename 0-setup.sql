@@ -12,8 +12,8 @@ Copyright(c): 2026 Snowflake Inc. All rights reserved.
   
   This block can be run any number of times safely.
   It nukes all state and rebuilds from scratch.
-  Assumes 99-teardown.sql has been run first (handles classification
-  profile cleanup). If not, run teardown before this script.
+  Assumes 99-teardown.sql has been run first to guarantee a clean
+  account. If not, run teardown before this script.
 =============================================================================*/
 
 USE ROLE ACCOUNTADMIN;
