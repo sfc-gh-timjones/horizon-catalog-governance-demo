@@ -12,17 +12,11 @@ Copyright(c): 2026 Snowflake Inc. All rights reserved.
   
   This block can be run any number of times safely.
   It nukes all state and rebuilds from scratch.
-  Order matters: classification profile must be unset before DROP DATABASE.
+  Assumes 99-teardown.sql has been run first (handles classification
+  profile cleanup). If not, run teardown before this script.
 =============================================================================*/
 
 USE ROLE ACCOUNTADMIN;
-
--- Safe to ignore errors on first run when HRZN_DB or the profile don't yet exist.
--- In Snowsight, red rows here are harmless — subsequent statements still execute.
-ALTER DATABASE IF EXISTS HRZN_DB UNSET CLASSIFICATION_PROFILE;
-
-DROP SNOWFLAKE.DATA_PRIVACY.CLASSIFICATION_PROFILE IF EXISTS
-    HRZN_DB.HRZN_SCH.HRZN_STANDARD_CLASSIFICATION_PROFILE;
 
 DROP DATABASE IF EXISTS HRZN_DB;
 
