@@ -243,7 +243,7 @@ SELECT * FROM SEMANTIC_VIEW(
 ORDER BY TOTAL_REVENUE DESC
 LIMIT 10;
 
--- Same query, restricted role — emails MASKED, only MA rows
+-- Same query, restricted role — emails MASKED, only CA, TX, MA rows
 USE ROLE HRZN_DATA_USER;
 SELECT * FROM SEMANTIC_VIEW(
     CUSTOMER_ORDER_ANALYTICS

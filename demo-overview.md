@@ -33,7 +33,7 @@ that apply to tables, views, AI models, and apps — all from a single control p
 ## 2. Governance & Policy Enforcement
 **"Define who can see which data."**
 
-- Row access policies restrict which rows a role can see (e.g., DATA_USER only sees Massachusetts customers)
+- Row access policies restrict which rows a role can see (e.g., DATA_USER only sees CA, TX, and MA customers)
 - Aggregation policies enforce k-anonymity — users must aggregate with minimum group sizes (100+), no individual record access
 - Projection policies control column visibility — a column can be used in WHERE but excluded from output
 - All policies are role-aware: governors and engineers see everything, restricted roles see filtered results
