@@ -152,10 +152,27 @@ GRANT EXECUTE DATA METRIC FUNCTION ON ACCOUNT TO ROLE HRZN_IT_ADMIN;
 
 /*=============================================================================
   TABLES + DATA LOAD
+
+  Data files are bundled in the repo under data/.
+  Before running COPY INTO, upload them to the internal stage (one-time step):
+
+    SnowSQL:   PUT file://data/CustomerDataRaw.csv @HRZN_DB.HRZN_SCH.DATA_STAGE AUTO_COMPRESS=FALSE;
+               PUT file://data/CustomerOrders.csv  @HRZN_DB.HRZN_SCH.DATA_STAGE AUTO_COMPRESS=FALSE;
+
+    Snow CLI:  snow stage copy data/CustomerDataRaw.csv @HRZN_DB.HRZN_SCH.DATA_STAGE --overwrite
+               snow stage copy data/CustomerOrders.csv  @HRZN_DB.HRZN_SCH.DATA_STAGE --overwrite
+
+  Original source (for reference only — no longer required):
+    s3://sfquickstarts/summit_2024_horizon_hol/CustomerDataRaw.csv
+    s3://sfquickstarts/summit_2024_horizon_hol/CustomerOrders.csv
+    From: Snowflake-Labs quickstart v2.0 by Ravi Kumar & Severin Gassauer
 =============================================================================*/
 
 USE ROLE HRZN_DATA_ENGINEER;
 USE WAREHOUSE HRZN_WH;
+
+CREATE OR REPLACE STAGE HRZN_DB.HRZN_SCH.DATA_STAGE
+    FILE_FORMAT = (TYPE = 'CSV', SKIP_HEADER = 1);
 
 CREATE OR REPLACE TABLE HRZN_DB.HRZN_SCH.CUSTOMER (
     ID FLOAT,
@@ -186,11 +203,11 @@ CREATE OR REPLACE TABLE HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS (
 );
 
 COPY INTO HRZN_DB.HRZN_SCH.CUSTOMER
-FROM s3://sfquickstarts/summit_2024_horizon_hol/CustomerDataRaw.csv
+FROM @HRZN_DB.HRZN_SCH.DATA_STAGE/CustomerDataRaw.csv
 FILE_FORMAT = (TYPE = 'CSV', SKIP_HEADER = 1);
 
 COPY INTO HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS
-FROM s3://sfquickstarts/summit_2024_horizon_hol/CustomerOrders.csv
+FROM @HRZN_DB.HRZN_SCH.DATA_STAGE/CustomerOrders.csv
 FILE_FORMAT = (TYPE = 'CSV', SKIP_HEADER = 1);
 
 GRANT ALL ON TABLE HRZN_DB.HRZN_SCH.CUSTOMER TO ROLE HRZN_DATA_GOVERNOR;
