@@ -107,19 +107,28 @@ that apply to tables, views, AI models, and apps — all from a single control p
 
 ---
 
+## Quick Start
+
+| Script | What it does |
+|--------|-------------|
+| `TEARDOWN_AND_REBUILD.sql` | **Run this first.** One-click deploy: creates git integration, tears down any existing objects, runs all setup scripts. After this, the demo environment is ready. |
+| `RUN_ALL_DEMOS.sql` | Smoke test: runs all 6 demo scripts in sequence to validate everything works end-to-end. Requires `TEARDOWN_AND_REBUILD.sql` to have been run first (uses the git integration it creates). |
+
 ## Setup & Teardown
 
 > **Important:** Always run `99-teardown.sql` before `0-setup.sql`. Teardown is
 > safe to run multiple times (all statements use `IF EXISTS`). Setup assumes a
 > clean account with no pre-existing HRZN objects.
+>
+> Or just run `TEARDOWN_AND_REBUILD.sql` — it handles both automatically.
 
 | Script | Purpose |
 |--------|---------|
 | `99-teardown.sql` | Clean teardown: drop everything (run this first) |
-| `0-setup.sql` | Idempotent environment build: roles, warehouse, database, schemas, data load from S3 (bundled CSVs as fallback), EMPLOYEES table + differential privacy |
+| `0-setup.sql` | Environment build: roles, warehouse, database, schemas, data load from S3 (bundled CSVs as fallback), EMPLOYEES table + differential privacy |
 | `1-data-engineer.sql` | DMFs + Expectations on SALES_LEADS, custom DMF, scheduling |
 | `2-data-governor.sql` | Classification, masking, row access, aggregation, projection, tag propagation |
-| `3-it-admin.sql` | Access history queries, lineage, role effectiveness |
+| `3-it-admin.sql` | Access history queries, lineage, role effectiveness (read-only — no objects built, covered by demo-6) |
 | `4-semantic-views.sql` | Semantic view DDL and verification |
 | `5-ai-redact.sql` | Customer feedback data, AI_REDACT, secure view |
 | `6-nl-governance.sql` | Natural language governance queries |

@@ -2,8 +2,11 @@
 | H | O | R | I | Z | O | N |   | L | A | B | S |
 
   Smoke test: runs ALL demo scripts in sequence.
-  Assumes TEARDOWN_AND_REBUILD.sql has already been run (environment
-  is built and git repo integration exists).
+
+  Prerequisites:
+    - TEARDOWN_AND_REBUILD.sql must have been run first. It creates:
+        1. The HRZN_DEPLOY database + HRZN_GIT_API_INTEGRATION (git repo)
+        2. All demo objects (HRZN_DB, roles, warehouse, tables, policies)
 
   This is NOT for live demos — it just validates that every script
   executes without errors end-to-end.

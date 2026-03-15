@@ -39,8 +39,7 @@ EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/99-teardown.s
 
 /*=============================================================================
   3. SETUP (runs in order: 0 → 6)
-     Teardown drops HRZN_WH, so recreate a temporary warehouse for EXECUTE IMMEDIATE.
-     0-setup.sql will CREATE OR REPLACE it with the correct config.
+     Teardown drops HRZN_WH, so recreate it for EXECUTE IMMEDIATE.
 =============================================================================*/
 
 CREATE WAREHOUSE IF NOT EXISTS HRZN_WH WAREHOUSE_SIZE = 'XSMALL' AUTO_SUSPEND = 60 AUTO_RESUME = TRUE;
