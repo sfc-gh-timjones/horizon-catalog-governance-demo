@@ -49,7 +49,8 @@ USE WAREHOUSE HRZN_WH;
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/0-setup.sql;
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/1-data-engineer.sql;
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/2-data-governor.sql;
-EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/3-it-admin.sql;
+-- 3-it-admin.sql is read-only queries (no objects built); skipped here, covered by demo-6-audit.sql
+-- EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/3-it-admin.sql;
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/4-semantic-views.sql;
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/5-ai-redact.sql;
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/6-nl-governance.sql;
