@@ -50,7 +50,7 @@ ALTER WAREHOUSE HRZN_WH SET WAREHOUSE_SIZE = 'LARGE';
 SELECT
     value:"objectName"::STRING AS object_name,
     COUNT(DISTINCT query_id) AS number_of_queries
-FROM snowflake.account_usage.access_history,
+FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY,
 LATERAL FLATTEN (input => direct_objects_accessed)
 WHERE object_name ILIKE 'HRZN%'
 GROUP BY object_name
@@ -62,7 +62,7 @@ SELECT
     CASE WHEN object_modified_by_ddl IS NOT NULL THEN 'write' ELSE 'read' END AS query_type,
     COUNT(DISTINCT query_id) AS number_of_queries,
     MAX(query_start_time) AS last_access
-FROM snowflake.account_usage.access_history,
+FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY,
 LATERAL FLATTEN (input => direct_objects_accessed)
 WHERE object_name ILIKE 'HRZN%'
 GROUP BY object_name, query_type

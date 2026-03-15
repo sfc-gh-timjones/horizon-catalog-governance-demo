@@ -214,4 +214,7 @@ WHERE salary > 100000 AND salary < 150000
 GROUP BY department;
 
 -- Privacy budget: how many queries remain before the weekly reset?
+-- (Must run as DATA_USER — the entity-key role that consumes DP budget)
+USE ROLE HRZN_DATA_USER;
+
 SELECT * FROM TABLE(SNOWFLAKE.DATA_PRIVACY.ESTIMATE_REMAINING_DP_AGGREGATES('HRZN_DB.HRZN_SCH.EMPLOYEES'));

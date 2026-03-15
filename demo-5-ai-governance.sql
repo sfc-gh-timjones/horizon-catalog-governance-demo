@@ -33,7 +33,7 @@ USE SCHEMA HRZN_SCH;
 USE ROLE HRZN_DATA_GOVERNOR;
 
 SELECT * FROM SEMANTIC_VIEW(
-    CUSTOMER_ORDER_ANALYTICS
+    HRZN_DB.HRZN_SCH.CUSTOMER_ORDER_ANALYTICS
     DIMENSIONS customers.customer_name, customers.email_address, customers.location_state
     METRICS orders.total_revenue
 )
@@ -44,7 +44,7 @@ LIMIT 10;
 USE ROLE HRZN_DATA_USER;
 
 SELECT * FROM SEMANTIC_VIEW(
-    CUSTOMER_ORDER_ANALYTICS
+    HRZN_DB.HRZN_SCH.CUSTOMER_ORDER_ANALYTICS
     DIMENSIONS customers.customer_name, customers.email_address, customers.location_state
     METRICS orders.total_revenue
 )
@@ -64,7 +64,7 @@ LIMIT 10;
 USE ROLE HRZN_DATA_GOVERNOR;
 
 SELECT * FROM SEMANTIC_VIEW(
-    CUSTOMER_ORDER_ANALYTICS
+    HRZN_DB.HRZN_SCH.CUSTOMER_ORDER_ANALYTICS
     DIMENSIONS customers.location_state
     METRICS orders.total_revenue, orders.total_orders
 )
@@ -74,7 +74,7 @@ ORDER BY TOTAL_REVENUE DESC;
 USE ROLE HRZN_DATA_USER;
 
 SELECT * FROM SEMANTIC_VIEW(
-    CUSTOMER_ORDER_ANALYTICS
+    HRZN_DB.HRZN_SCH.CUSTOMER_ORDER_ANALYTICS
     DIMENSIONS customers.location_state
     METRICS orders.total_revenue, orders.total_orders
 )
