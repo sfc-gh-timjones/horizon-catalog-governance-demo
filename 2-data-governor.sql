@@ -407,6 +407,34 @@ SELECT TOP 100 * EXCLUDE ZIP FROM HRZN_DB.HRZN_SCH.CUSTOMER;
 SELECT * EXCLUDE ZIP FROM HRZN_DB.HRZN_SCH.CUSTOMER WHERE ZIP NOT IN ('97135','95357') LIMIT 10;
 
 /*=============================================================================
+  ROW ACCESS POLICY ON CUSTOMER_ORDERS — Cascading Governance
+  
+  Without this, CUSTOMER_ORDERS rows for filtered-out customers leak
+  through semantic view joins as NULL dimensions (a "None" row showing
+  aggregate revenue the user shouldn't see).
+  
+  This policy mirrors CUSTOMER_STATE_RESTRICTIONS: for each order,
+  it checks whether the order's customer lives in a state the current
+  role is allowed to see. If not, the order is hidden.
+  
+  [COMPLIANCE] GDPR Art.25 — Data protection by design
+              HIPAA — Minimum necessary standard
+=============================================================================*/
+
+CREATE OR REPLACE ROW ACCESS POLICY HRZN_DB.TAG_SCHEMA.CUSTOMER_ORDERS_STATE_RESTRICTIONS
+    AS (CUST_ID STRING) RETURNS BOOLEAN ->
+       CURRENT_ROLE() IN ('ACCOUNTADMIN','HRZN_DATA_ENGINEER','HRZN_DATA_GOVERNOR')
+       OR EXISTS (
+            SELECT 1 FROM HRZN_DB.HRZN_SCH.CUSTOMER c
+            JOIN HRZN_DB.TAG_SCHEMA.ROW_POLICY_MAP rp
+              ON rp.ROLE = CURRENT_ROLE() AND rp.STATE_VISIBILITY = c.STATE
+            WHERE c.ID = CUST_ID::FLOAT
+       );
+
+ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS
+    ADD ROW ACCESS POLICY HRZN_DB.TAG_SCHEMA.CUSTOMER_ORDERS_STATE_RESTRICTIONS ON (CUSTOMER_ID);
+
+/*=============================================================================
   CLEANUP FOR NEXT LABS
 =============================================================================*/
 

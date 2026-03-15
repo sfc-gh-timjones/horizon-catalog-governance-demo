@@ -49,7 +49,7 @@ DROP WAREHOUSE IF EXISTS HRZN_WH;
     All semantic views (CUSTOMER_ORDER_ANALYTICS)
     All functions (INVALID_EMAIL_COUNT data metric function)
     All masking policies (DATA_CLASSIFICATION_MASK_STRING, _NUMBER, _DATE, _TIMESTAMP)
-    All row access policies (CUSTOMER_OPTIN_POLICY, CUSTOMER_STATE_RESTRICTIONS)
+    All row access policies (CUSTOMER_OPTIN_POLICY, CUSTOMER_STATE_RESTRICTIONS, CUSTOMER_ORDERS_STATE_RESTRICTIONS)
     All privacy policies (EMPLOYEE_PRIVACY_POLICY + privacy domains)
     All tags (DATA_CLASSIFICATION with propagation)
 =============================================================================*/

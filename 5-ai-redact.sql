@@ -81,7 +81,7 @@ FROM sample_feedback;
   (Limited to 100 rows for demo performance — AI_REDACT takes ~50s)
 =============================================================================*/
 
-USE ROLE SYSADMIN;
+USE ROLE HRZN_DATA_GOVERNOR;
 
 CREATE OR REPLACE TABLE HRZN_DB.HRZN_SCH.CUSTOMER_FEEDBACK_REDACTED AS
 SELECT
