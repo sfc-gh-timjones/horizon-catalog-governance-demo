@@ -48,8 +48,8 @@ SELECT * FROM HRZN_DB.HRZN_SCH.CUSTOMER LIMIT 5;
   DATA QUALITY MONITORING — SALES_LEADS Table
   
   The SALES_LEADS table has intentional quality issues baked in:
-    ~120 NULL emails, ~100 blank phones, ~60 duplicate emails,
-    ~60 invalid statuses, ~40 out-of-range deal amounts.
+    ~115 NULL emails, ~103 blank phones, ~71 duplicate emails,
+    ~63 invalid statuses, ~37 out-of-range deal amounts.
   
   We attach system DMFs + expectations to create automated pass/fail
   quality checks, plus a custom DMF for business-rule validation.

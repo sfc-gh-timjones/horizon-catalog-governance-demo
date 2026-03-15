@@ -206,11 +206,11 @@ GRANT SELECT ON TABLE HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS TO ROLE HRZN_IT_ADMIN;
   
   3000 synthetic CRM leads with intentional quality issues that increase
   linearly by row number, so later rows are progressively dirtier:
-    ~120 NULL emails         (every 25th row)
-    ~100 blank phone numbers (every 30th row)
-    ~60 duplicate emails     (every 40th row reuses a fixed email)
-    ~60 invalid statuses     (every 50th row gets garbage values)
-    ~40 out-of-range deals   (every 75th row: negative or > $1M)
+    ~115 NULL emails         (every 26th row)
+    ~103 blank phone numbers (every 29th row)
+    ~71 duplicate emails     (every 41st row reuses a fixed email)
+    ~63 invalid statuses     (every 47th row gets garbage values)
+    ~37 out-of-range deals   (every 79th row: negative or > $1M)
   No external dependencies — generated entirely with GENERATOR + expressions.
 =============================================================================*/
 
@@ -237,13 +237,13 @@ SELECT
     'Lead_' || RN AS LEAD_NAME,
 
     CASE
-        WHEN MOD(RN, 25) = 0 THEN NULL
-        WHEN MOD(RN, 40) = 0 THEN 'duplicate_lead@example.com'
+        WHEN MOD(RN, 26) = 0 THEN NULL
+        WHEN MOD(RN, 41) = 0 THEN 'duplicate_lead@example.com'
         ELSE 'lead_' || RN || '@example.com'
     END AS EMAIL,
 
     CASE
-        WHEN MOD(RN, 30) = 0 THEN ''
+        WHEN MOD(RN, 29) = 0 THEN ''
         ELSE '555-' || LPAD(MOD(RN * 7, 10000)::VARCHAR, 4, '0')
     END AS PHONE,
 
@@ -259,11 +259,11 @@ SELECT
     END AS COMPANY,
 
     CASE
-        WHEN MOD(RN, 50) = 0 THEN
-            CASE MOD(RN, 150)
+        WHEN MOD(RN, 47) = 0 THEN
+            CASE MOD(RN, 141)
                 WHEN 0   THEN 'YOLO'
-                WHEN 50  THEN 'idk'
-                WHEN 100 THEN 'maybe_later'
+                WHEN 47  THEN 'idk'
+                WHEN 94 THEN 'maybe_later'
             END
         ELSE
             CASE MOD(RN, 5)
@@ -276,8 +276,8 @@ SELECT
     END AS STATUS,
 
     CASE
-        WHEN MOD(RN, 75) = 0 THEN
-            CASE WHEN MOD(RN, 150) = 0 THEN -5000.00
+        WHEN MOD(RN, 79) = 0 THEN
+            CASE WHEN MOD(RN, 158) = 0 THEN -5000.00
             ELSE 2500000.00
             END
         ELSE ROUND(1000 + UNIFORM(0::FLOAT, 99000::FLOAT, RANDOM()), 2)

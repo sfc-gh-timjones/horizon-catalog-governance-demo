@@ -100,12 +100,12 @@ FROM TABLE(information_schema.data_metric_function_references(
   every DMF with its EXPECTATION clause and returns a pass/fail verdict.
   
   Our SALES_LEADS data is intentionally dirty, so most expectations FAIL:
-    - no_null_emails        → FAIL  (we have ~120 NULL emails)
-    - no_blank_phones       → FAIL  (we have ~100 blank phones)
-    - no_duplicate_emails   → FAIL  (we have ~60 duplicates)
+    - no_null_emails        → FAIL  (we have ~115 NULL emails)
+    - no_blank_phones       → FAIL  (we have ~103 blank phones)
+    - no_duplicate_emails   → FAIL  (we have ~71 duplicates)
     - minimum_lead_volume   → PASS  (3000 rows ≥ 2500 threshold)
-    - no_invalid_statuses   → FAIL  (we have ~60 garbage statuses)
-    - no_out_of_range_deals → FAIL  (we have ~40 bad amounts)
+    - no_invalid_statuses   → FAIL  (we have ~63 garbage statuses)
+    - no_out_of_range_deals → FAIL  (we have ~37 bad amounts)
 =============================================================================*/
 
 SELECT *
