@@ -80,37 +80,35 @@ USE ROLE HRZN_DATA_GOVERNOR;
 ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS UNSET AGGREGATION POLICY;
 
 /*=============================================================================
-  PROJECTION POLICY — Column-Level Access Control
+  PROJECTION POLICY — Layered with Masking (Both Active on ZIP)
   
-  ZIP column is projection-constrained for DATA_USER.
-  They CANNOT include it in query output.
-  They CAN use it in WHERE clauses (filter without seeing the value).
+  ZIP already has a SENSITIVE masking tag (partial mask for DATA_USER).
+  We now ADD a projection policy on top — both coexist on the same column.
+  DATA_USER cannot project ZIP at all. If they EXCLUDE ZIP, masking
+  still applies to every other SENSITIVE column (names, addresses).
+  
+  This demonstrates layered governance: masking + projection on one column.
   
   Setup ref: 2-data-governor.sql lines 392-401
-  Note: Re-applying policy for this demo section.
-  ⚠ If script stops before cleanup, re-run from line 111 or run 0-setup.sql.
+  ⚠ If script stops before cleanup, re-run from line 109 or run 0-setup.sql.
 =============================================================================*/
 
 USE ROLE HRZN_DATA_GOVERNOR;
 
-ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER MODIFY COLUMN ZIP UNSET TAG HRZN_DB.TAG_SCHEMA.DATA_CLASSIFICATION;
 ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER MODIFY COLUMN ZIP
     SET PROJECTION POLICY HRZN_DB.TAG_SCHEMA.projection_policy;
 
 USE ROLE HRZN_DATA_USER;
 
--- FAILS: ZIP is projection constrained
+-- FAILS: ZIP is projection constrained (even though masking is also active)
 SELECT TOP 10 * FROM HRZN_DB.HRZN_SCH.CUSTOMER;
 
--- WORKS: exclude ZIP from output
--- (names appear masked — tag-based masking policies are active for DATA_USER)
+-- WORKS: exclude ZIP — masking still active on names, addresses, etc.
 SELECT TOP 10 * EXCLUDE ZIP FROM HRZN_DB.HRZN_SCH.CUSTOMER;
 
--- WORKS: ZIP can be used in WHERE (filter without seeing)
--- (names still masked — masking policies apply regardless of projection policy)
+-- WORKS: ZIP can be used in WHERE (filter without seeing the value)
 SELECT * EXCLUDE ZIP FROM HRZN_DB.HRZN_SCH.CUSTOMER WHERE ZIP IN ('53596','38106','62568') LIMIT 5;
 
 USE ROLE HRZN_DATA_GOVERNOR;
 
 ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER MODIFY COLUMN ZIP UNSET PROJECTION POLICY;
-ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER MODIFY COLUMN ZIP SET TAG HRZN_DB.TAG_SCHEMA.DATA_CLASSIFICATION = 'SENSITIVE';
