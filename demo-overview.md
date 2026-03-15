@@ -109,8 +109,13 @@ that apply to tables, views, AI models, and apps — all from a single control p
 
 ## Setup & Teardown
 
+> **Important:** Always run `99-teardown.sql` before `0-setup.sql`. Teardown is
+> safe to run multiple times (all statements use `IF EXISTS`). Setup assumes a
+> clean account with no pre-existing HRZN objects.
+
 | Script | Purpose |
 |--------|---------|
+| `99-teardown.sql` | Clean teardown: drop everything (run this first) |
 | `0-setup.sql` | Idempotent environment build: roles, warehouse, database, schemas, data load from S3 (bundled CSVs as fallback), EMPLOYEES table + differential privacy |
 | `1-data-engineer.sql` | DMFs + Expectations on SALES_LEADS, custom DMF, scheduling |
 | `2-data-governor.sql` | Classification, masking, row access, aggregation, projection, tag propagation |
@@ -118,7 +123,6 @@ that apply to tables, views, AI models, and apps — all from a single control p
 | `4-semantic-views.sql` | Semantic view DDL and verification |
 | `5-ai-redact.sql` | Customer feedback data, AI_REDACT, secure view |
 | `6-nl-governance.sql` | Natural language governance queries |
-| `99-teardown.sql` | Clean teardown: drop everything |
 
 > **Note:** Access history queries (scripts 3 and 6) have up to 3-hour latency.
 > Results improve the longer the demo environment has been running.

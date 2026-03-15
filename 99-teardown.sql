@@ -8,37 +8,27 @@ Version:      HLab v2.1 (Idempotent)
 /*=============================================================================
   TEARDOWN
   
-  Removes ALL demo objects. Safe to run multiple times.
-  Order matters: classification profile must be unset before DROP DATABASE.
+  Removes ALL demo objects. Safe to run multiple times — every statement
+  is guarded with IF EXISTS and runs as ACCOUNTADMIN (always available).
 =============================================================================*/
 
-USE ROLE HRZN_DATA_GOVERNOR;
-USE WAREHOUSE HRZN_WH;
+USE ROLE ACCOUNTADMIN;
 
-ALTER DATABASE HRZN_DB UNSET CLASSIFICATION_PROFILE;
-
-DROP SNOWFLAKE.DATA_PRIVACY.CLASSIFICATION_PROFILE IF EXISTS
-    HRZN_DB.HRZN_SCH.HRZN_STANDARD_CLASSIFICATION_PROFILE;
-
-USE ROLE HRZN_DATA_ENGINEER;
 DROP DATABASE IF EXISTS HRZN_DB;
 
-USE ROLE SECURITYADMIN;
 DROP ROLE IF EXISTS HRZN_DATA_ANALYST;
 DROP ROLE IF EXISTS HRZN_DATA_GOVERNOR;
 DROP ROLE IF EXISTS HRZN_DATA_USER;
 DROP ROLE IF EXISTS HRZN_IT_ADMIN;
 DROP ROLE IF EXISTS HRZN_DATA_ENGINEER;
 
-USE ROLE SYSADMIN;
 DROP WAREHOUSE IF EXISTS HRZN_WH;
 
 /*=============================================================================
   TEARDOWN COMPLETE
   
   All Horizon Lab objects removed:
-    HRZN_DB database and ALL contents (schemas, tables, views, functions, stages)
-    Classification profile
+    HRZN_DB database and ALL contents (schemas, tables, views, functions)
     Custom roles (HRZN_DATA_GOVERNOR, HRZN_DATA_USER, HRZN_IT_ADMIN, HRZN_DATA_ENGINEER, HRZN_DATA_ANALYST)
     HRZN_WH warehouse
 
@@ -51,6 +41,7 @@ DROP WAREHOUSE IF EXISTS HRZN_WH;
     All masking policies (DATA_CLASSIFICATION_MASK_STRING, _NUMBER, _DATE, _TIMESTAMP)
     All row access policies (CUSTOMER_OPTIN_POLICY, CUSTOMER_STATE_RESTRICTIONS, CUSTOMER_ORDERS_STATE_RESTRICTIONS)
     All privacy policies (EMPLOYEE_PRIVACY_POLICY + privacy domains)
+    All classification profiles (HRZN_STANDARD_CLASSIFICATION_PROFILE)
     All tags (DATA_CLASSIFICATION with propagation)
 =============================================================================*/
 
