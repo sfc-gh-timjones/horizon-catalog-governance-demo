@@ -153,19 +153,14 @@ GRANT EXECUTE DATA METRIC FUNCTION ON ACCOUNT TO ROLE HRZN_IT_ADMIN;
 /*=============================================================================
   TABLES + DATA LOAD
 
-  Data files are bundled in the repo under data/.
-  Before running COPY INTO, upload them to the internal stage (one-time step):
+  Loads from the public Snowflake quickstart S3 bucket (works in Snowsight).
+  Source: Snowflake-Labs quickstart v2.0 by Ravi Kumar & Severin Gassauer
 
-    SnowSQL:   PUT file://data/CustomerDataRaw.csv @HRZN_DB.HRZN_SCH.DATA_STAGE AUTO_COMPRESS=FALSE;
-               PUT file://data/CustomerOrders.csv  @HRZN_DB.HRZN_SCH.DATA_STAGE AUTO_COMPRESS=FALSE;
-
-    Snow CLI:  snow stage copy data/CustomerDataRaw.csv @HRZN_DB.HRZN_SCH.DATA_STAGE --overwrite
-               snow stage copy data/CustomerOrders.csv  @HRZN_DB.HRZN_SCH.DATA_STAGE --overwrite
-
-  Original source (for reference only — no longer required):
-    s3://sfquickstarts/summit_2024_horizon_hol/CustomerDataRaw.csv
-    s3://sfquickstarts/summit_2024_horizon_hol/CustomerOrders.csv
-    From: Snowflake-Labs quickstart v2.0 by Ravi Kumar & Severin Gassauer
+  FALLBACK: If S3 is unavailable, the CSVs are also bundled in this repo
+  under data/. Upload them to the internal stage, then swap the COPY INTO:
+    1.  snow stage copy data/CustomerDataRaw.csv @HRZN_DB.HRZN_SCH.DATA_STAGE --overwrite
+        snow stage copy data/CustomerOrders.csv  @HRZN_DB.HRZN_SCH.DATA_STAGE --overwrite
+    2.  Change the two COPY INTO statements below to load FROM @HRZN_DB.HRZN_SCH.DATA_STAGE/...
 =============================================================================*/
 
 USE ROLE HRZN_DATA_ENGINEER;
@@ -203,11 +198,11 @@ CREATE OR REPLACE TABLE HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS (
 );
 
 COPY INTO HRZN_DB.HRZN_SCH.CUSTOMER
-FROM @HRZN_DB.HRZN_SCH.DATA_STAGE/CustomerDataRaw.csv
+FROM s3://sfquickstarts/summit_2024_horizon_hol/CustomerDataRaw.csv
 FILE_FORMAT = (TYPE = 'CSV', SKIP_HEADER = 1);
 
 COPY INTO HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS
-FROM @HRZN_DB.HRZN_SCH.DATA_STAGE/CustomerOrders.csv
+FROM s3://sfquickstarts/summit_2024_horizon_hol/CustomerOrders.csv
 FILE_FORMAT = (TYPE = 'CSV', SKIP_HEADER = 1);
 
 GRANT ALL ON TABLE HRZN_DB.HRZN_SCH.CUSTOMER TO ROLE HRZN_DATA_GOVERNOR;
