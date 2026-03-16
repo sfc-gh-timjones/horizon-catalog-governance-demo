@@ -32,9 +32,7 @@ USE SCHEMA HRZN_SCH;
   Setup ref: 0-setup.sql lines 216-296 (SALES_LEADS table)
 =============================================================================*/
 
--- Quick overview: total rows and a sample
-SELECT COUNT(*) AS total_leads FROM HRZN_DB.HRZN_SCH.SALES_LEADS;
-SELECT * FROM HRZN_DB.HRZN_SCH.SALES_LEADS LIMIT 20;
+SELECT * FROM HRZN_DB.HRZN_SCH.SALES_LEADS;
 
 -- Spot-check: rows with NULL emails
 SELECT LEAD_ID, LEAD_NAME, EMAIL, STATUS

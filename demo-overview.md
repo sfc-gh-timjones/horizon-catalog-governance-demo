@@ -129,7 +129,7 @@ that apply to tables, views, AI models, and apps — all from a single control p
 | `0-setup.sql` | Environment build: roles, warehouse, database, schemas, data load from S3 (bundled CSVs as fallback), EMPLOYEES table + differential privacy |
 | `1-data-engineer.sql` | DMFs + Expectations on SALES_LEADS, custom DMF, scheduling |
 | `2-data-governor.sql` | Classification, masking, row access, aggregation, projection, tag propagation |
-| `3-it-admin.sql` | Access history queries, lineage, role effectiveness (read-only — no objects built, covered by demo-6) |
+| `3-it-admin.sql` | Pre-computes audit tables (access history, lineage, role effectiveness) into HRZN_DB.AUDIT_RESULTS. Run after ~3 hours of activity for best results. |
 | `4-semantic-views.sql` | Semantic view DDL and verification |
 | `5-ai-redact.sql` | Customer feedback data, AI_REDACT, secure view |
 | `6-nl-governance.sql` | Natural language governance queries |

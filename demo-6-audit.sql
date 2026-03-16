@@ -6,47 +6,37 @@
 
   What you'll show:
     - Access history: who accessed what data, when, read vs write
+    - Column-level write lineage: source→target data flow
+    - Object dependency lineage: downstream impact + upstream sources
     - Login history: user login activity over last 90 days
     - Warehouse metering: credit consumption by warehouse
     - Cost attribution: which users drove the most credit spend
-    - Object dependency lineage: what depends on the CUSTOMER table
-    - Upstream lineage: what feeds the summary view
     - Role effectiveness: granted privileges vs actual usage
-    - Governance scorecard: policy coverage overview
 
-  Setup references:
-    - Access history queries:              3-it-admin.sql lines 24-46
-    - OBJECT_DEPENDENCIES lineage:         3-it-admin.sql lines 172-197
-    - Role effectiveness analysis:         3-it-admin.sql lines 230-260
-    - Governance coverage scoring:         6-nl-governance.sql lines 115-154
-    - Policy types summary:                6-nl-governance.sql lines 167-175
-    - Login history:                       SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY
-    - Warehouse metering:                  SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_METERING_HISTORY
-    - Query attribution:                   SNOWFLAKE.ACCOUNT_USAGE.QUERY_ATTRIBUTION_HISTORY
+  How it works:
+    Each section has a CREATE TABLE IF NOT EXISTS (the full SQL for reference)
+    followed by a SELECT * from the pre-computed result in AUDIT_RESULTS.
+    Show the audience the SQL, then run the SELECT for instant results.
+
+  Pre-requisite: Run 3-it-admin.sql first to materialize the audit tables
+  into HRZN_DB.AUDIT_RESULTS. Re-run 3-it-admin.sql to refresh snapshots.
 
   Note: Access history has up to 3-hour latency.
   Results improve the longer the demo environment has been running.
 ***************************************************************************************************/
 
 USE WAREHOUSE HRZN_WH;
-USE DATABASE HRZN_DB;
-USE SCHEMA HRZN_SCH;
+USE ROLE HRZN_IT_ADMIN;
 
 /*=============================================================================
   ACCESS HISTORY — Who Touched What, When
   
   Every query against every object is tracked automatically.
   No configuration needed — it's built into the platform.
-  
-  Setup ref: 3-it-admin.sql lines 24-46
 =============================================================================*/
 
-USE ROLE HRZN_IT_ADMIN;
-
-ALTER WAREHOUSE HRZN_WH SET WAREHOUSE_SIZE = 'LARGE';
--- ⚠ If this script fails partway, run: ALTER WAREHOUSE HRZN_WH SET WAREHOUSE_SIZE = 'XSMALL';
-
 -- Direct object access counts
+CREATE TABLE IF NOT EXISTS HRZN_DB.AUDIT_RESULTS.DIRECT_ACCESS_COUNTS AS
 SELECT
     value:"objectName"::STRING AS object_name,
     COUNT(DISTINCT query_id) AS number_of_queries
@@ -56,7 +46,10 @@ WHERE object_name ILIKE 'HRZN%'
 GROUP BY object_name
 ORDER BY number_of_queries DESC;
 
+SELECT * FROM HRZN_DB.AUDIT_RESULTS.DIRECT_ACCESS_COUNTS;
+
 -- Read vs write breakdown with last access time
+CREATE TABLE IF NOT EXISTS HRZN_DB.AUDIT_RESULTS.READ_WRITE_BREAKDOWN AS
 SELECT
     value:"objectName"::STRING AS object_name,
     CASE WHEN object_modified_by_ddl IS NOT NULL THEN 'write' ELSE 'read' END AS query_type,
@@ -68,16 +61,76 @@ WHERE object_name ILIKE 'HRZN%'
 GROUP BY object_name, query_type
 ORDER BY object_name, number_of_queries DESC;
 
+SELECT * FROM HRZN_DB.AUDIT_RESULTS.READ_WRITE_BREAKDOWN;
+
+/*=============================================================================
+  COLUMN-LEVEL WRITE LINEAGE — Source→Target Data Flow
+  
+  Shows which source columns feed which target columns.
+  Covers both DIRECT sources and BASE (transitive) sources.
+  Filtered to tagged (sensitive) columns on CUSTOMER.
+=============================================================================*/
+
+CREATE TABLE IF NOT EXISTS HRZN_DB.AUDIT_RESULTS.COLUMN_WRITE_LINEAGE AS
+SELECT * FROM (
+    SELECT
+        directSources.value:"objectId"::varchar AS source_object_id,
+        directSources.value:"objectName"::varchar AS source_object_name,
+        directSources.value:"columnName"::varchar AS source_column_name,
+        'DIRECT' AS source_column_type,
+        om.value:"objectName"::varchar AS target_object_name,
+        columns_modified.value:"columnName"::varchar AS target_column_name
+    FROM (SELECT * FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY) t,
+        LATERAL FLATTEN(input => t.OBJECTS_MODIFIED) om,
+        LATERAL FLATTEN(input => om.value:"columns", outer => true) columns_modified,
+        LATERAL FLATTEN(input => columns_modified.value:"directSources", outer => true) directSources
+    UNION
+    SELECT
+        baseSources.value:"objectId" AS source_object_id,
+        baseSources.value:"objectName"::varchar AS source_object_name,
+        baseSources.value:"columnName"::varchar AS source_column_name,
+        'BASE' AS source_column_type,
+        om.value:"objectName"::varchar AS target_object_name,
+        columns_modified.value:"columnName"::varchar AS target_column_name
+    FROM (SELECT * FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY) t,
+        LATERAL FLATTEN(input => t.OBJECTS_MODIFIED) om,
+        LATERAL FLATTEN(input => om.value:"columns", outer => true) columns_modified,
+        LATERAL FLATTEN(input => columns_modified.value:"baseSources", outer => true) baseSources
+) col_lin
+WHERE (SOURCE_OBJECT_NAME = 'HRZN_DB.HRZN_SCH.CUSTOMER' OR TARGET_OBJECT_NAME = 'HRZN_DB.HRZN_SCH.CUSTOMER')
+    AND (SOURCE_COLUMN_NAME IN (
+            SELECT COLUMN_NAME FROM (
+                SELECT * FROM TABLE(
+                    HRZN_DB.INFORMATION_SCHEMA.TAG_REFERENCES_ALL_COLUMNS(
+                        'HRZN_DB.HRZN_SCH.CUSTOMER', 'table'
+                    )
+                )
+            )
+            WHERE TAG_NAME IN ('SEMANTIC_CATEGORY','PRIVACY_CATEGORY','DATA_CLASSIFICATION')
+        )
+        OR TARGET_COLUMN_NAME IN (
+            SELECT COLUMN_NAME FROM (
+                SELECT * FROM TABLE(
+                    HRZN_DB.INFORMATION_SCHEMA.TAG_REFERENCES_ALL_COLUMNS(
+                        'HRZN_DB.HRZN_SCH.CUSTOMER', 'table'
+                    )
+                )
+            )
+            WHERE TAG_NAME IN ('SEMANTIC_CATEGORY','PRIVACY_CATEGORY','DATA_CLASSIFICATION')
+        )
+    );
+
+SELECT * FROM HRZN_DB.AUDIT_RESULTS.COLUMN_WRITE_LINEAGE;
+
 /*=============================================================================
   OBJECT DEPENDENCY LINEAGE — Impact Analysis
   
   Static lineage — no access history latency.
   Shows which views, tables, and semantic views depend on each other.
-  
-  Setup ref: 3-it-admin.sql lines 172-197
 =============================================================================*/
 
 -- Downstream: what depends on the CUSTOMER table?
+CREATE TABLE IF NOT EXISTS HRZN_DB.AUDIT_RESULTS.DOWNSTREAM_CUSTOMER AS
 SELECT
     REFERENCING_DATABASE || '.' || REFERENCING_SCHEMA || '.' || REFERENCING_OBJECT_NAME AS dependent_object,
     REFERENCING_OBJECT_DOMAIN AS object_type
@@ -86,7 +139,10 @@ WHERE REFERENCED_DATABASE = 'HRZN_DB'
     AND REFERENCED_SCHEMA = 'HRZN_SCH'
     AND REFERENCED_OBJECT_NAME = 'CUSTOMER';
 
+SELECT * FROM HRZN_DB.AUDIT_RESULTS.DOWNSTREAM_CUSTOMER;
+
 -- Upstream: what feeds the CUSTOMER_ORDER_SUMMARY view?
+CREATE TABLE IF NOT EXISTS HRZN_DB.AUDIT_RESULTS.UPSTREAM_SUMMARY_VIEW AS
 SELECT
     REFERENCED_DATABASE || '.' || REFERENCED_SCHEMA || '.' || REFERENCED_OBJECT_NAME AS source_object,
     REFERENCED_OBJECT_DOMAIN AS source_type
@@ -94,6 +150,8 @@ FROM SNOWFLAKE.ACCOUNT_USAGE.OBJECT_DEPENDENCIES
 WHERE REFERENCING_DATABASE = 'HRZN_DB'
     AND REFERENCING_SCHEMA = 'HRZN_SCH'
     AND REFERENCING_OBJECT_NAME = 'CUSTOMER_ORDER_SUMMARY';
+
+SELECT * FROM HRZN_DB.AUDIT_RESULTS.UPSTREAM_SUMMARY_VIEW;
 
 -- Prove it: show the actual DDL — you can see CUSTOMER and CUSTOMER_ORDERS referenced
 SELECT GET_DDL('VIEW', 'HRZN_DB.HRZN_SCH.CUSTOMER_ORDER_SUMMARY');
@@ -105,6 +163,7 @@ SELECT GET_DDL('VIEW', 'HRZN_DB.HRZN_SCH.CUSTOMER_ORDER_SUMMARY');
   Spot inactive accounts and verify active user engagement.
 =============================================================================*/
 
+CREATE TABLE IF NOT EXISTS HRZN_DB.AUDIT_RESULTS.LOGIN_ACTIVITY AS
 SELECT
     USER_NAME,
     COUNT(*) AS login_count,
@@ -121,6 +180,8 @@ WHERE EVENT_TIMESTAMP >= DATEADD(day, -90, CURRENT_TIMESTAMP())
 GROUP BY USER_NAME
 ORDER BY login_count DESC;
 
+SELECT * FROM HRZN_DB.AUDIT_RESULTS.LOGIN_ACTIVITY;
+
 /*=============================================================================
   WAREHOUSE METERING — Credit Consumption (Last 90 Days)
   
@@ -128,6 +189,7 @@ ORDER BY login_count DESC;
   Helps identify cost hotspots and right-sizing opportunities.
 =============================================================================*/
 
+CREATE TABLE IF NOT EXISTS HRZN_DB.AUDIT_RESULTS.WAREHOUSE_CREDITS AS
 SELECT
     WAREHOUSE_NAME,
     ROUND(SUM(CREDITS_USED), 2) AS total_credits,
@@ -139,6 +201,8 @@ WHERE START_TIME >= DATEADD(day, -90, CURRENT_TIMESTAMP())
 GROUP BY WAREHOUSE_NAME
 ORDER BY total_credits DESC;
 
+SELECT * FROM HRZN_DB.AUDIT_RESULTS.WAREHOUSE_CREDITS;
+
 /*=============================================================================
   QUERY ATTRIBUTION — Who's Driving Credit Spend?
   
@@ -146,6 +210,7 @@ ORDER BY total_credits DESC;
   Identifies top spenders for chargeback and optimization.
 =============================================================================*/
 
+CREATE TABLE IF NOT EXISTS HRZN_DB.AUDIT_RESULTS.COST_ATTRIBUTION AS
 SELECT
     USER_NAME,
     ROUND(SUM(CREDITS_ATTRIBUTED_COMPUTE), 2) AS compute_credits,
@@ -157,35 +222,16 @@ GROUP BY USER_NAME
 ORDER BY compute_credits DESC
 LIMIT 20;
 
-/*=============================================================================
-  GOVERNANCE SCORECARD — Policy Coverage
-  
-  Quick overview: what policies are applied to CUSTOMER?
-  What masking policies exist? What objects are in the environment?
-  
-  Setup ref: 6-nl-governance.sql lines 115-175
-=============================================================================*/
-
-USE ROLE HRZN_DATA_GOVERNOR;
-
--- All policies applied to CUSTOMER
-SELECT * FROM TABLE(HRZN_DB.INFORMATION_SCHEMA.POLICY_REFERENCES(
-    REF_ENTITY_NAME => 'HRZN_DB.HRZN_SCH.CUSTOMER',
-    REF_ENTITY_DOMAIN => 'TABLE'
-));
-
+SELECT * FROM HRZN_DB.AUDIT_RESULTS.COST_ATTRIBUTION;
 
 /*=============================================================================
   ROLE EFFECTIVENESS — Granted vs Used
   
   Identifies dormant roles (granted but never used)
   and over-provisioned roles (many grants, few queries).
-  
-  Setup ref: 3-it-admin.sql lines 230-260
 =============================================================================*/
 
-USE ROLE HRZN_IT_ADMIN;
-
+CREATE TABLE IF NOT EXISTS HRZN_DB.AUDIT_RESULTS.ROLE_EFFECTIVENESS AS
 WITH granted AS (
     SELECT
         GRANTEE_NAME AS role_name,
@@ -215,4 +261,29 @@ FROM granted g
 LEFT JOIN used u ON g.role_name = u.role_name
 ORDER BY g.role_name;
 
-ALTER WAREHOUSE HRZN_WH SET WAREHOUSE_SIZE = 'XSMALL';
+SELECT * FROM HRZN_DB.AUDIT_RESULTS.ROLE_EFFECTIVENESS;
+
+/*=============================================================================
+  OTHER IDEAS — What Else Can You Build With ACCOUNT_USAGE?
+  
+  These aren't scripted, but show the art of the possible:
+  
+  1. Failed login anomaly detection — flag users with sudden spikes in
+     failed logins using LOGIN_HISTORY, potential credential stuffing signal.
+
+  2. After-hours access alerts — join ACCESS_HISTORY with QUERY_HISTORY
+     to find queries run outside business hours on sensitive tables.
+
+  3. Schema drift tracking — compare COLUMNS view snapshots over time
+     to detect unexpected column additions, drops, or type changes.
+
+  4. Cross-account data sharing audit — use DATA_TRANSFER_HISTORY to
+     track which shares are sending data where and how much.
+
+  5. Query complexity trending — analyze QUERY_HISTORY compilation_time
+     and bytes_scanned week-over-week to spot performance regressions
+     before users complain.
+
+  6. Privilege escalation detection — monitor GRANTS_TO_ROLES for new
+     ACCOUNTADMIN or SECURITYADMIN grants and alert on unexpected changes.
+=============================================================================*/
