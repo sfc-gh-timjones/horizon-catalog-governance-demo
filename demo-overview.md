@@ -59,7 +59,7 @@ that apply to tables, views, AI models, and apps — all from a single control p
 - Safe sentiment analysis on redacted data — analytics without PII exposure
 
 **Demo script:** [`demo-3-privacy.sql`](demo-3-privacy.sql)
-**Setup reference:** `2-data-governor.sql` (aggregation policy), `0-setup.sql` (EMPLOYEES + privacy policy), `5-ai-redact.sql` (AI_REDACT + secure view)
+**Setup reference:** `2-data-governor.sql` (aggregation policy), `0-setup.sql` (EMPLOYEES + privacy policy), `5-ai-redact.sql` (AI_REDACT + role-based redaction view)
 
 ---
 
@@ -131,7 +131,7 @@ that apply to tables, views, AI models, and apps — all from a single control p
 | `2-data-governor.sql` | Classification, masking, row access, aggregation, projection, tag propagation |
 | `3-it-admin.sql` | Pre-computes audit tables (access history, lineage, role effectiveness) into HRZN_DB.AUDIT_RESULTS. Run after ~3 hours of activity for best results. |
 | `4-semantic-views.sql` | Semantic view DDL and verification |
-| `5-ai-redact.sql` | Customer feedback data, AI_REDACT, secure view |
+| `5-ai-redact.sql` | Customer feedback data, AI_REDACT, role-based redaction view |
 | `6-nl-governance.sql` | Natural language governance queries |
 
 > **Note:** Access history queries (scripts 3 and 6) have up to 3-hour latency.

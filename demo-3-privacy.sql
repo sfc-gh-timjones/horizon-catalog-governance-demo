@@ -9,7 +9,7 @@
     - Differential privacy: noisy aggregates, row-level access blocked, privacy budget
     - AI_REDACT for unstructured text (50+ PII types, no regex)
     - Partial redaction (choose which PII types to redact)
-    - Secure view: governor sees PII, analyst sees pre-redacted version
+    - Role-based redaction view: governor sees PII, analyst sees pre-redacted version
     - Sentiment analysis on redacted data (safe analytics without PII exposure)
 
   Setup references:
@@ -17,7 +17,7 @@
     - EMPLOYEES table (synthetic data):   0-setup.sql lines 204-237
     - Privacy policy + entity key:        0-setup.sql lines 286-320
     - Customer feedback data + AI_REDACT: 5-ai-redact.sql lines 20-97
-    - Secure view creation:               5-ai-redact.sql lines 143-155
+    - Role-based redaction view:          5-ai-redact.sql lines 143-155
     - Sentiment analysis:                 5-ai-redact.sql lines 108-120
 ***************************************************************************************************/
 
