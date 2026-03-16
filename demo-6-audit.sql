@@ -46,7 +46,7 @@ WHERE object_name ILIKE 'HRZN%'
 GROUP BY object_name
 ORDER BY number_of_queries DESC;
 
-SELECT * FROM HRZN_DB.AUDIT_RESULTS.DIRECT_ACCESS_COUNTS;
+SELECT * FROM HRZN_DB.AUDIT_RESULTS.DIRECT_ACCESS_COUNTS ORDER BY number_of_queries DESC;
 
 -- Read vs write breakdown with last access time
 CREATE TABLE IF NOT EXISTS HRZN_DB.AUDIT_RESULTS.READ_WRITE_BREAKDOWN AS
@@ -61,7 +61,7 @@ WHERE object_name ILIKE 'HRZN%'
 GROUP BY object_name, query_type
 ORDER BY object_name, number_of_queries DESC;
 
-SELECT * FROM HRZN_DB.AUDIT_RESULTS.READ_WRITE_BREAKDOWN;
+SELECT * FROM HRZN_DB.AUDIT_RESULTS.READ_WRITE_BREAKDOWN ORDER BY query_type, number_of_queries DESC;
 
 /*=============================================================================
   COLUMN-LEVEL WRITE LINEAGE — Source→Target Data Flow
@@ -180,7 +180,7 @@ WHERE EVENT_TIMESTAMP >= DATEADD(day, -90, CURRENT_TIMESTAMP())
 GROUP BY USER_NAME
 ORDER BY login_count DESC;
 
-SELECT * FROM HRZN_DB.AUDIT_RESULTS.LOGIN_ACTIVITY;
+SELECT * FROM HRZN_DB.AUDIT_RESULTS.LOGIN_ACTIVITY ORDER BY login_count DESC;
 
 /*=============================================================================
   WAREHOUSE METERING — Credit Consumption (Last 90 Days)
@@ -201,7 +201,7 @@ WHERE START_TIME >= DATEADD(day, -90, CURRENT_TIMESTAMP())
 GROUP BY WAREHOUSE_NAME
 ORDER BY total_credits DESC;
 
-SELECT * FROM HRZN_DB.AUDIT_RESULTS.WAREHOUSE_CREDITS;
+SELECT * FROM HRZN_DB.AUDIT_RESULTS.WAREHOUSE_CREDITS ORDER BY total_credits DESC;
 
 /*=============================================================================
   QUERY ATTRIBUTION — Who's Driving Credit Spend?
@@ -222,7 +222,7 @@ GROUP BY USER_NAME
 ORDER BY compute_credits DESC
 LIMIT 20;
 
-SELECT * FROM HRZN_DB.AUDIT_RESULTS.COST_ATTRIBUTION;
+SELECT * FROM HRZN_DB.AUDIT_RESULTS.COST_ATTRIBUTION ORDER BY query_count DESC;
 
 /*=============================================================================
   ROLE EFFECTIVENESS — Granted vs Used

@@ -45,9 +45,8 @@ EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/0-setup.sql;
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/1-data-engineer.sql;
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/2-data-governor.sql;
 -- 3-it-admin.sql pre-computes audit tables from ACCOUNT_USAGE (slow queries).
--- Uncomment to include in deploy, but note: access history needs ~3 hours to populate.
--- Best run separately after the demo environment has been active for a while.
--- EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/3-it-admin.sql;
+-- Access history needs ~3 hours to populate — re-run later for richer results.
+EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/3-it-admin.sql;
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/4-semantic-views.sql;
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/5-ai-redact.sql;
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/6-nl-governance.sql;
