@@ -10,8 +10,8 @@
 ***************************************************************************************************/
 
 USE ROLE ACCOUNTADMIN;
-CREATE WAREHOUSE IF NOT EXISTS HRZN_WH WAREHOUSE_SIZE = 'XSMALL' AUTO_SUSPEND = 60 AUTO_RESUME = TRUE;
-USE WAREHOUSE HRZN_WH;
+CREATE WAREHOUSE IF NOT EXISTS HRZN_DEPLOY_WH WAREHOUSE_SIZE = 'XSMALL' AUTO_SUSPEND = 60 AUTO_RESUME = TRUE;
+USE WAREHOUSE HRZN_DEPLOY_WH;
 
 /*=============================================================================
   1. GIT REPO INTEGRATION
@@ -39,11 +39,7 @@ EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/99-teardown.s
 
 /*=============================================================================
   3. SETUP (runs in order: 0 → 6)
-     Teardown drops HRZN_WH, so recreate it for EXECUTE IMMEDIATE.
 =============================================================================*/
-
-CREATE WAREHOUSE IF NOT EXISTS HRZN_WH WAREHOUSE_SIZE = 'XSMALL' AUTO_SUSPEND = 60 AUTO_RESUME = TRUE;
-USE WAREHOUSE HRZN_WH;
 
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/0-setup.sql;
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/1-data-engineer.sql;
@@ -65,6 +61,8 @@ EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/6-nl-governan
     demo-5-ai-governance.sql  Pillar 5: AI Governance
     demo-6-audit.sql       Pillar 6: Audit & Compliance
 =============================================================================*/
+
+DROP WAREHOUSE IF EXISTS HRZN_DEPLOY_WH;
 
 SELECT 'Horizon Catalog demo deployed. Run any demo-*.sql script.' AS status;
 
