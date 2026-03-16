@@ -55,7 +55,7 @@ that apply to tables, views, AI models, and apps — all from a single control p
 - Differential privacy on the EMPLOYEES table: individual rows blocked, only noisy aggregates allowed, with confidence intervals (DP_INTERVAL_LOW/HIGH) and a weekly privacy budget
 - AI_REDACT detects and removes 50+ PII types from unstructured text (feedback, tickets, emails) — no regex needed
 - Partial redaction lets you choose exactly which PII types to redact (e.g., names and emails, but keep phone numbers)
-- Secure views provide role-based access: governors see original PII, analysts see the pre-redacted version
+- A role-based redaction view controls who sees PII: governors see original text, analysts see the pre-redacted version
 - Safe sentiment analysis on redacted data — analytics without PII exposure
 
 **Demo script:** [`demo-3-privacy.sql`](demo-3-privacy.sql)
