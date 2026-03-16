@@ -1,26 +1,24 @@
 /***************************************************************************************************
 | H | O | R | I | Z | O | N |   | D | E | M | O |
 
-  Demo 3: Privacy Protection
-  "Protect sensitive data automatically."
+  Demo 3: Privacy & Aggregation
+  "Protect individuals even when data is accessible."
 
   What you'll show:
-    - Tag-based dynamic masking: same query, different results by role
-    - Multi-level masking: PII→redacted, RESTRICTED→partial, SENSITIVE→partial mask
+    - Aggregation policy: must aggregate with 100+ group size, no individual records
+    - Differential privacy: noisy aggregates, row-level access blocked, privacy budget
     - AI_REDACT for unstructured text (50+ PII types, no regex)
     - Partial redaction (choose which PII types to redact)
     - Secure view: governor sees PII, analyst sees pre-redacted version
     - Sentiment analysis on redacted data (safe analytics without PII exposure)
-    - Differential privacy: noisy aggregates, row-level access blocked, privacy budget
 
   Setup references:
-    - Tag-based masking policies (4 types):  2-data-governor.sql lines 186-243
-    - Consent consent map:                   2-data-governor.sql lines 180-184
-    - Customer feedback data + AI_REDACT:    5-ai-redact.sql lines 20-97
-    - Secure view creation:                  5-ai-redact.sql lines 143-155
-    - Sentiment analysis:                    5-ai-redact.sql lines 108-120
-    - EMPLOYEES table (synthetic data):        0-setup.sql lines 204-237
-    - Privacy policy + entity key + domains:   0-setup.sql lines 286-320
+    - Aggregation policy:                 2-data-governor.sql lines 360-369
+    - EMPLOYEES table (synthetic data):   0-setup.sql lines 204-237
+    - Privacy policy + entity key:        0-setup.sql lines 286-320
+    - Customer feedback data + AI_REDACT: 5-ai-redact.sql lines 20-97
+    - Secure view creation:               5-ai-redact.sql lines 143-155
+    - Sentiment analysis:                 5-ai-redact.sql lines 108-120
 ***************************************************************************************************/
 
 USE WAREHOUSE HRZN_WH;
@@ -28,43 +26,101 @@ USE DATABASE HRZN_DB;
 USE SCHEMA HRZN_SCH;
 
 /*=============================================================================
-  TAG-BASED DYNAMIC MASKING — Same Query, Different Results
+  AGGREGATION POLICY — k-Anonymity Enforcement
   
-  The DATA_CLASSIFICATION tag drives 4 masking policies (STRING, NUMBER,
-  DATE, TIMESTAMP). One tag, automatic enforcement on every tagged column.
+  DATA_USER cannot SELECT individual records from CUSTOMER_ORDERS.
+  They CAN run aggregates — but only when groups contain 100+ rows.
+  This prevents re-identification attacks on small groups.
   
-    PII        → fully redacted (***PII-REDACTED***)
-    RESTRICTED → partial mask (last 4 chars visible)
-    SENSITIVE  → partial mask (first letter visible, rest asterisks)
-    INTERNAL   → visible (low risk)
-  
-  Setup ref: 2-data-governor.sql lines 186-243
+  Setup ref: 2-data-governor.sql lines 360-369
+  Note: Re-applying policy for this demo section.
+  ⚠ If script stops before cleanup, re-run from line 55 or run 0-setup.sql.
 =============================================================================*/
 
--- GOVERNOR: Full visibility — sees all PII in the clear
 USE ROLE HRZN_DATA_GOVERNOR;
 
-SELECT ID, FIRST_NAME, EMAIL, SSN, PHONE_NUMBER, BIRTHDATE, COMPANY, OPTIN
-FROM HRZN_DB.HRZN_SCH.CUSTOMER LIMIT 10;
+-- GOVERNOR: unrestricted access
+SELECT TOP 100 * FROM HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS;
 
--- DATA USER: Multi-level masking in action
+ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS
+    SET AGGREGATION POLICY HRZN_DB.TAG_SCHEMA.aggregation_policy;
+
 USE ROLE HRZN_DATA_USER;
 
-SELECT ID, FIRST_NAME, EMAIL, SSN, PHONE_NUMBER, BIRTHDATE, COMPANY, OPTIN
-FROM HRZN_DB.HRZN_SCH.CUSTOMER LIMIT 10;
+-- FAILS: can't select individual records
+SELECT TOP 100 * FROM HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS;
+
+-- WORKS: aggregate with large enough groups
+SELECT ORDER_CURRENCY, SUM(ORDER_AMOUNT) AS total_amount
+FROM HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS GROUP BY ORDER_CURRENCY;
+
+USE ROLE HRZN_DATA_GOVERNOR;
+
+ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS UNSET AGGREGATION POLICY;
 
 /*=============================================================================
-  TAG PROPAGATION + MASKING ON DERIVED TABLES
+  DIFFERENTIAL PRIVACY — Noisy Aggregates + Privacy Budget
   
-  CUSTOMER_COPY inherited all tags from CUSTOMER via CTAS.
-  Masking policies apply automatically — no extra config.
+  The EMPLOYEES table is protected by a privacy policy.
+  Individual rows are blocked — only aggregates are allowed.
+  Noise is injected automatically to prevent re-identification.
+  A weekly privacy budget limits how many queries analysts can run.
   
-  Setup ref: 2-data-governor.sql lines 288-309
+  Setup ref: 0-setup.sql lines 204-237 (EMPLOYEES table), lines 286-320 (privacy policy + domains)
 =============================================================================*/
 
+-- GOVERNOR: exact results, no noise
+USE ROLE HRZN_DATA_GOVERNOR;
+
+SELECT
+    DEPARTMENT,
+    COUNT(DISTINCT EMPLOYEE_ID) AS headcount,
+    ROUND(AVG(SALARY), 2) AS avg_salary,
+    ROUND(AVG(BONUS), 2) AS avg_bonus
+FROM HRZN_DB.HRZN_SCH.EMPLOYEES
+GROUP BY DEPARTMENT
+ORDER BY avg_salary DESC;
+
+-- DATA USER: individual records blocked
 USE ROLE HRZN_DATA_USER;
 
-SELECT ID, FIRST_NAME, EMAIL, SSN, PHONE_NUMBER FROM HRZN_DB.HRZN_SCH.CUSTOMER_COPY LIMIT 10;
+SELECT * FROM HRZN_DB.HRZN_SCH.EMPLOYEES LIMIT 5;
+-- ^ Fails: "Query not supported" — row-level access is blocked
+
+-- DATA USER: noisy aggregates with confidence intervals
+SELECT
+    department,
+    COUNT(salary) AS headcount,
+    DP_INTERVAL_LOW(headcount) AS headcount_low,
+    DP_INTERVAL_HIGH(headcount) AS headcount_high
+FROM (
+    SELECT EMPLOYEE_ID, ANY_VALUE(DEPARTMENT) AS department, ANY_VALUE(SALARY) AS salary
+    FROM HRZN_DB.HRZN_SCH.EMPLOYEES
+    GROUP BY EMPLOYEE_ID
+)
+GROUP BY department
+ORDER BY department;
+
+-- DATA USER: how many employees earn $100K–$150K per department?
+SELECT
+    department,
+    COUNT(salary) AS emp_count,
+    DP_INTERVAL_LOW(emp_count) AS count_low,
+    DP_INTERVAL_HIGH(emp_count) AS count_high
+FROM (
+    SELECT EMPLOYEE_ID, ANY_VALUE(DEPARTMENT) AS department, ANY_VALUE(SALARY) AS salary
+    FROM HRZN_DB.HRZN_SCH.EMPLOYEES
+    GROUP BY EMPLOYEE_ID
+)
+WHERE salary > 100000 AND salary < 150000
+GROUP BY department
+ORDER BY department;
+
+-- Privacy budget: how many queries remain before the weekly reset?
+-- (Must run as DATA_USER — the entity-key role that consumes DP budget)
+USE ROLE HRZN_DATA_USER;
+
+SELECT * FROM TABLE(SNOWFLAKE.DATA_PRIVACY.ESTIMATE_REMAINING_DP_AGGREGATES('HRZN_DB.HRZN_SCH.EMPLOYEES'));
 
 /*=============================================================================
   AI_REDACT — Unstructured PII Protection
@@ -156,65 +212,3 @@ USE ROLE HRZN_DATA_USER;
 SELECT ORDER_ID, CUSTOMER_FEEDBACK
 FROM HRZN_DB.HRZN_SCH.CUSTOMER_FEEDBACK_SECURE
 WHERE CUSTOMER_FEEDBACK NOT LIKE 'Standard order%' LIMIT 3;
-
-/*=============================================================================
-  DIFFERENTIAL PRIVACY — Noisy Aggregates + Privacy Budget
-  
-  The EMPLOYEES table is protected by a privacy policy.
-  Individual rows are blocked — only aggregates are allowed.
-  Noise is injected automatically to prevent re-identification.
-  A weekly privacy budget limits how many queries analysts can run.
-  
-  Setup ref: 0-setup.sql lines 204-237 (EMPLOYEES table), lines 286-320 (privacy policy + domains)
-=============================================================================*/
-
--- GOVERNOR: exact results, no noise
-USE ROLE HRZN_DATA_GOVERNOR;
-
-SELECT
-    DEPARTMENT,
-    COUNT(DISTINCT EMPLOYEE_ID) AS headcount,
-    ROUND(AVG(SALARY), 2) AS avg_salary,
-    ROUND(AVG(BONUS), 2) AS avg_bonus
-FROM HRZN_DB.HRZN_SCH.EMPLOYEES
-GROUP BY DEPARTMENT
-ORDER BY avg_salary DESC;
-
--- DATA USER: individual records blocked
-USE ROLE HRZN_DATA_USER;
-
-SELECT * FROM HRZN_DB.HRZN_SCH.EMPLOYEES LIMIT 5;
--- ^ Fails: "Query not supported" — row-level access is blocked
-
--- DATA USER: noisy aggregates with confidence intervals
-SELECT
-    department,
-    COUNT(salary) AS headcount,
-    DP_INTERVAL_LOW(headcount) AS headcount_low,
-    DP_INTERVAL_HIGH(headcount) AS headcount_high
-FROM (
-    SELECT EMPLOYEE_ID, ANY_VALUE(DEPARTMENT) AS department, ANY_VALUE(SALARY) AS salary
-    FROM HRZN_DB.HRZN_SCH.EMPLOYEES
-    GROUP BY EMPLOYEE_ID
-)
-GROUP BY department;
-
--- DATA USER: how many employees earn $100K–$150K per department?
-SELECT
-    department,
-    COUNT(salary) AS emp_count,
-    DP_INTERVAL_LOW(emp_count) AS count_low,
-    DP_INTERVAL_HIGH(emp_count) AS count_high
-FROM (
-    SELECT EMPLOYEE_ID, ANY_VALUE(DEPARTMENT) AS department, ANY_VALUE(SALARY) AS salary
-    FROM HRZN_DB.HRZN_SCH.EMPLOYEES
-    GROUP BY EMPLOYEE_ID
-)
-WHERE salary > 100000 AND salary < 150000
-GROUP BY department;
-
--- Privacy budget: how many queries remain before the weekly reset?
--- (Must run as DATA_USER — the entity-key role that consumes DP budget)
-USE ROLE HRZN_DATA_USER;
-
-SELECT * FROM TABLE(SNOWFLAKE.DATA_PRIVACY.ESTIMATE_REMAINING_DP_AGGREGATES('HRZN_DB.HRZN_SCH.EMPLOYEES'));

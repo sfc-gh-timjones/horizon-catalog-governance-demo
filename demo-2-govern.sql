@@ -1,19 +1,22 @@
 /***************************************************************************************************
 | H | O | R | I | Z | O | N |   | D | E | M | O |
 
-  Demo 2: Governance & Policy Enforcement
-  "Define who can see which data."
+  Demo 2: Access Control
+  "Control who sees what — rows, columns, and values."
 
   What you'll show:
     - Row access policy: DATA_USER only sees CA, TX, MA customers
-    - Aggregation policy: must aggregate with 100+ group size, no individual records
+    - Tag-based dynamic masking: same query, different results by role
+    - Multi-level masking: PII→redacted, RESTRICTED→partial, SENSITIVE→partial mask
+    - Tag propagation: CTAS-derived tables inherit masking automatically
     - Projection policy: ZIP can't be projected, but CAN be used in WHERE
 
   Setup references:
     - RBAC roles + grants:               0-setup.sql lines 31-47
     - Row policy mapping table:           0-setup.sql lines 100-107
     - State-based row access policy:      2-data-governor.sql lines 333-345
-    - Aggregation policy:                 2-data-governor.sql lines 360-369
+    - Tag-based masking policies:         2-data-governor.sql lines 186-243
+    - Tag propagation (CUSTOMER_COPY):    2-data-governor.sql lines 288-309
     - Projection policy:                  2-data-governor.sql lines 392-401
 ***************************************************************************************************/
 
@@ -43,41 +46,48 @@ GROUP BY STATE ORDER BY customer_count DESC;
 -- DATA USER: Only CA, TX, MA
 USE ROLE HRZN_DATA_USER;
 
-SELECT * FROM HRZN_DB.HRZN_SCH.CUSTOMER;
-
 SELECT STATE, COUNT(*) AS customer_count
 FROM HRZN_DB.HRZN_SCH.CUSTOMER
 GROUP BY STATE ORDER BY customer_count DESC;
 
 /*=============================================================================
-  AGGREGATION POLICY — k-Anonymity Enforcement
+  TAG-BASED DYNAMIC MASKING — Same Query, Different Results
   
-  DATA_USER cannot SELECT individual records from CUSTOMER_ORDERS.
-  They CAN run aggregates — but only when groups contain 100+ rows.
-  This prevents re-identification attacks on small groups.
+  The DATA_CLASSIFICATION tag drives 4 masking policies (STRING, NUMBER,
+  DATE, TIMESTAMP). One tag, automatic enforcement on every tagged column.
   
-  Setup ref: 2-data-governor.sql lines 360-369
-  Note: Re-applying policy for this demo section.
-  ⚠ If script stops before cleanup, re-run from line 77 or run 0-setup.sql.
+    PII        → fully redacted (***PII-REDACTED***)
+    RESTRICTED → partial mask (last 4 chars visible)
+    SENSITIVE  → partial mask (first letter visible, rest asterisks)
+    INTERNAL   → visible (low risk)
+  
+  Setup ref: 2-data-governor.sql lines 186-243
 =============================================================================*/
 
+-- GOVERNOR: Full visibility — sees all PII in the clear
 USE ROLE HRZN_DATA_GOVERNOR;
 
-ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS
-    SET AGGREGATION POLICY HRZN_DB.TAG_SCHEMA.aggregation_policy;
+SELECT ID, FIRST_NAME, EMAIL, SSN, PHONE_NUMBER, BIRTHDATE, COMPANY, OPTIN
+FROM HRZN_DB.HRZN_SCH.CUSTOMER LIMIT 10;
+
+-- DATA USER: Multi-level masking in action
+USE ROLE HRZN_DATA_USER;
+
+SELECT ID, FIRST_NAME, EMAIL, SSN, PHONE_NUMBER, BIRTHDATE, COMPANY, OPTIN
+FROM HRZN_DB.HRZN_SCH.CUSTOMER LIMIT 10;
+
+/*=============================================================================
+  TAG PROPAGATION + MASKING ON DERIVED TABLES
+  
+  CUSTOMER_COPY inherited all tags from CUSTOMER via CTAS.
+  Masking policies apply automatically — no extra config.
+  
+  Setup ref: 2-data-governor.sql lines 288-309
+=============================================================================*/
 
 USE ROLE HRZN_DATA_USER;
 
--- FAILS: can't select individual records
-SELECT TOP 10 * FROM HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS;
-
--- WORKS: aggregate with large enough groups
-SELECT ORDER_CURRENCY, SUM(ORDER_AMOUNT) AS total_amount
-FROM HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS GROUP BY ORDER_CURRENCY;
-
-USE ROLE HRZN_DATA_GOVERNOR;
-
-ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS UNSET AGGREGATION POLICY;
+SELECT ID, FIRST_NAME, EMAIL, SSN, PHONE_NUMBER FROM HRZN_DB.HRZN_SCH.CUSTOMER_COPY LIMIT 10;
 
 /*=============================================================================
   PROJECTION POLICY — Layered with Masking (Both Active on ZIP)

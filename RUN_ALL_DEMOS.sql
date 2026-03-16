@@ -17,9 +17,9 @@ ALTER GIT REPOSITORY HRZN_DEPLOY.GIT.HORIZON_REPO FETCH;
 USE WAREHOUSE HRZN_WH;
 
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/demo-1-discover.sql;
--- demo-2 intentionally triggers aggregation + projection policy errors (that's the demo)
+-- demo-2 intentionally triggers a projection policy error (that's the demo)
 -- EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/demo-2-govern.sql;
--- demo-3 intentionally triggers a differential privacy error (that's the demo)
+-- demo-3 intentionally triggers aggregation + differential privacy errors (that's the demo)
 -- EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/demo-3-privacy.sql;
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/demo-4-quality.sql;
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/demo-5-ai-governance.sql;

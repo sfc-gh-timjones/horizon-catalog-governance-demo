@@ -9,8 +9,8 @@ that apply to tables, views, AI models, and apps — all from a single control p
 | # | Category | Description |
 |---|----------|-----------------|
 | 1 | **Discovery & Classification** | Find sensitive data automatically and label it so everyone knows what it is |
-| 2 | **Governance & Policy Enforcement** | Control who can see which rows, columns, and records — and block everything else |
-| 3 | **Privacy Protection** | Scramble, mask, or hide sensitive values so the wrong people never see the real data |
+| 2 | **Access Control** | Control who can see which rows, columns, and values — and block everything else |
+| 3 | **Privacy & Aggregation** | Protect individuals with aggregation policies, differential privacy, and AI-powered PII redaction |
 | 4 | **Data Quality & Trust** | Continuously check that data is accurate, complete, and not broken |
 | 5 | **AI & Semantic Governance** | Make sure AI-powered analytics follow the same security rules as everything else |
 | 6 | **Audit, Lineage & Compliance** | Track who accessed what, when, and prove to auditors that your controls actually work |
@@ -30,35 +30,36 @@ that apply to tables, views, AI models, and apps — all from a single control p
 
 ---
 
-## 2. Governance & Policy Enforcement
-**"Define who can see which data."**
+## 2. Access Control
+**"Control who sees what — rows, columns, and values."**
 
 - Row access policies restrict which rows a role can see (e.g., DATA_USER only sees CA, TX, and MA customers)
-- Aggregation policies enforce k-anonymity — users must aggregate with minimum group sizes (100+), no individual record access
-- Projection policies control column visibility — a column can be used in WHERE but excluded from output
-- All policies are role-aware: governors and engineers see everything, restricted roles see filtered results
-
-**Demo script:** [`demo-2-govern.sql`](demo-2-govern.sql)
-**Setup reference:** `2-data-governor.sql` (row access, aggregation, projection policies), `0-setup.sql` (RBAC roles)
-
----
-
-## 3. Privacy Protection
-**"Protect sensitive data automatically."**
-
 - Tag-based dynamic masking applies multi-level protection based on classification:
   - **PII** → fully redacted (`***PII-REDACTED***`)
   - **RESTRICTED** → partial mask (last 4 characters visible)
   - **SENSITIVE** → partial mask (first letter visible, rest asterisks)
   - **INTERNAL** → visible (low risk)
 - Same query, same table — different results depending on the role executing it
+- Tag propagation: CTAS-derived tables inherit masking automatically — no extra config
+- Projection policies control column visibility — a column can be used in WHERE but excluded from output
+
+**Demo script:** [`demo-2-govern.sql`](demo-2-govern.sql)
+**Setup reference:** `2-data-governor.sql` (row access, masking, projection policies), `0-setup.sql` (RBAC roles)
+
+---
+
+## 3. Privacy & Aggregation
+**"Protect individuals even when data is accessible."**
+
+- Aggregation policies enforce k-anonymity — users must aggregate with minimum group sizes (100+), no individual record access
+- Differential privacy on the EMPLOYEES table: individual rows blocked, only noisy aggregates allowed, with confidence intervals (DP_INTERVAL_LOW/HIGH) and a weekly privacy budget
 - AI_REDACT detects and removes 50+ PII types from unstructured text (feedback, tickets, emails) — no regex needed
 - Partial redaction lets you choose exactly which PII types to redact (e.g., names and emails, but keep phone numbers)
 - Secure views provide role-based access: governors see original PII, analysts see the pre-redacted version
-- Differential privacy on the EMPLOYEES table: individual rows blocked, only noisy aggregates allowed, with confidence intervals (DP_INTERVAL_LOW/HIGH) and a weekly privacy budget
+- Safe sentiment analysis on redacted data — analytics without PII exposure
 
 **Demo script:** [`demo-3-privacy.sql`](demo-3-privacy.sql)
-**Setup reference:** `2-data-governor.sql` (masking policies), `5-ai-redact.sql` (AI_REDACT + secure view), `0-setup.sql` (EMPLOYEES + privacy policy)
+**Setup reference:** `2-data-governor.sql` (aggregation policy), `0-setup.sql` (EMPLOYEES + privacy policy), `5-ai-redact.sql` (AI_REDACT + secure view)
 
 ---
 
