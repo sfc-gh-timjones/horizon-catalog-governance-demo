@@ -98,8 +98,7 @@ FROM (
     FROM HRZN_DB.HRZN_SCH.EMPLOYEES
     GROUP BY EMPLOYEE_ID
 )
-GROUP BY department
-ORDER BY department;
+GROUP BY department;
 
 -- DATA USER: how many employees earn $100K–$150K per department?
 SELECT
@@ -113,8 +112,7 @@ FROM (
     GROUP BY EMPLOYEE_ID
 )
 WHERE salary > 100000 AND salary < 150000
-GROUP BY department
-ORDER BY department;
+GROUP BY department;
 
 -- Privacy budget: how many queries remain before the weekly reset?
 -- (Must run as DATA_USER — the entity-key role that consumes DP budget)
