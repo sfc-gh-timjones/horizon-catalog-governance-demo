@@ -7,7 +7,7 @@
   What you'll show:
     - Semantic views define business-friendly dimensions, metrics, relationships
     - Same semantic query, different results by role — zero extra config
-    - Row access policies filter states, masking policies hash PII
+    - Row access policies filter states, masking policies redact PII
     - Governance follows data into the semantic layer automatically
 
   Setup references:

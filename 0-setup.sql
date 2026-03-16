@@ -45,7 +45,7 @@ BEGIN
 END;
 
 /*=============================================================================
-  WAREHOUSE (CREATE OR REPLACE is idempotent)
+  WAREHOUSE (IF NOT EXISTS is idempotent)
 =============================================================================*/
 
 USE ROLE SYSADMIN;
@@ -104,9 +104,6 @@ INSERT INTO HRZN_DB.TAG_SCHEMA.ROW_POLICY_MAP
     ('HRZN_DATA_USER','CA'),
     ('HRZN_DATA_USER','TX'),
     ('HRZN_DATA_USER','MA');
-
-CREATE OR REPLACE SCHEMA HRZN_DB.SEC_POLICIES_SCHEMA
-    COMMENT = 'Schema containing Security Policies';
 
 /*=============================================================================
   FUTURE GRANTS
