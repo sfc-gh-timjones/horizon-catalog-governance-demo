@@ -143,10 +143,13 @@ WHERE CUSTOMER_FEEDBACK NOT LIKE 'Standard order%'
 LIMIT 10;
 
 -- Pre-computed version (same result, instant — built during setup)
+-- Run below code if you don't want to wait 20+ seconds for above code to run.
+/*
 SELECT ORDER_ID, original_feedback, redacted_feedback
 FROM HRZN_DB.HRZN_SCH.CUSTOMER_FEEDBACK_REDACTED
 WHERE original_feedback NOT LIKE 'Standard order%'
 LIMIT 10;
+*/
 
 /*=============================================================================
   PARTIAL REDACTION — Choose Which PII Types to Redact
@@ -196,6 +199,15 @@ ORDER BY sentiment_score DESC;
   
   Setup ref: 5-ai-redact.sql lines 143-155
 =============================================================================*/
+
+/*logic in setup (see reference lines above).
+
+    CASE
+        WHEN CURRENT_ROLE() IN ('HRZN_DATA_GOVERNOR', 'ACCOUNTADMIN')
+        THEN original_feedback
+        ELSE redacted_feedback
+    END AS CUSTOMER_FEEDBACK,
+*/
 
 -- Governor sees original PII
 USE ROLE HRZN_DATA_GOVERNOR;
