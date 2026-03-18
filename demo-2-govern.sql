@@ -33,9 +33,13 @@ USE SCHEMA HRZN_SCH;
   Setup ref: 2-data-governor.sql lines 333-345
 =============================================================================*/
 
--- What the mapping table looks like
+
 USE ROLE HRZN_DATA_GOVERNOR;
 
+
+-- ROW_POLICY_MAP is a simple lookup table (role → allowed states) created in
+-- 0-setup.sql lines 99-106. The row access policy (2-data-governor.sql lines
+-- 333-345) joins against it at query time to filter rows per role.
 SELECT * FROM HRZN_DB.TAG_SCHEMA.ROW_POLICY_MAP;
 
 -- GOVERNOR: All states, all rows
@@ -68,13 +72,13 @@ GROUP BY STATE ORDER BY customer_count DESC;
 USE ROLE HRZN_DATA_GOVERNOR;
 
 SELECT ID, FIRST_NAME, EMAIL, SSN, PHONE_NUMBER, BIRTHDATE, COMPANY, OPTIN
-FROM HRZN_DB.HRZN_SCH.CUSTOMER LIMIT 10;
+FROM HRZN_DB.HRZN_SCH.CUSTOMER LIMIT 100;
 
 -- DATA USER: Multi-level masking in action
 USE ROLE HRZN_DATA_USER;
 
 SELECT ID, FIRST_NAME, EMAIL, SSN, PHONE_NUMBER, BIRTHDATE, COMPANY, OPTIN
-FROM HRZN_DB.HRZN_SCH.CUSTOMER LIMIT 10;
+FROM HRZN_DB.HRZN_SCH.CUSTOMER LIMIT 100;
 
 /*=============================================================================
   TAG PROPAGATION + MASKING ON DERIVED TABLES
