@@ -8,3 +8,4 @@ __pycache__/
 .vscode/
 .idea/
 *.log
+RUN_ALL_DEMOS.sql
