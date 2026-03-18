@@ -11,7 +11,23 @@ See [`demo-overview.md`](demo-overview.md) for the full demo guide and Horizon p
 | Script | What it does |
 |--------|-------------|
 | `TEARDOWN_AND_REBUILD.sql` | **Run this first.** One-click deploy: creates git integration, tears down any existing objects, runs all setup scripts. After this, the demo environment is ready. |
-| `RUN_ALL_DEMOS.sql` | Smoke test: runs all 6 demo scripts in sequence to validate everything works end-to-end. Requires `TEARDOWN_AND_REBUILD.sql` to have been run first (uses the git integration it creates). |
 
-> **Note:** Access history queries (demo 6) have up to 3-hour latency.
-> Results improve the longer the demo environment has been running.
+---
+
+## Teardown
+
+When you're done and want to remove all demo objects without rebuilding, run the following (or equivalently, run `99-teardown.sql`):
+
+```sql
+USE ROLE ACCOUNTADMIN;
+
+DROP DATABASE IF EXISTS HRZN_DB;
+
+DROP ROLE IF EXISTS HRZN_DATA_ANALYST;
+DROP ROLE IF EXISTS HRZN_DATA_GOVERNOR;
+DROP ROLE IF EXISTS HRZN_DATA_USER;
+DROP ROLE IF EXISTS HRZN_IT_ADMIN;
+DROP ROLE IF EXISTS HRZN_DATA_ENGINEER;
+
+DROP WAREHOUSE IF EXISTS HRZN_WH;
+```

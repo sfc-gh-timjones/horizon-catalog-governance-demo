@@ -56,7 +56,7 @@ SELECT
     COUNT(DISTINCT query_id) AS number_of_queries
 FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY,
 LATERAL FLATTEN (input => direct_objects_accessed)
-WHERE object_name ILIKE 'HRZN%'
+WHERE query_start_time >= DATEADD(day, -90, CURRENT_TIMESTAMP())
 GROUP BY object_name
 ORDER BY number_of_queries DESC;
 
@@ -71,7 +71,7 @@ SELECT
     MAX(query_start_time) AS last_access
 FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY,
 LATERAL FLATTEN (input => direct_objects_accessed)
-WHERE object_name ILIKE 'HRZN%'
+WHERE query_start_time >= DATEADD(day, -90, CURRENT_TIMESTAMP())
 GROUP BY object_name, query_type
 ORDER BY object_name, number_of_queries DESC;
 
@@ -138,8 +138,7 @@ SELECT
 FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY,
 LATERAL FLATTEN (input => base_objects_accessed) base,
 LATERAL FLATTEN (input => direct_objects_accessed) direct
-WHERE 1=1
-    AND object_name ILIKE 'HRZN%'
+WHERE query_start_time >= DATEADD(day, -90, CURRENT_TIMESTAMP())
     AND object_name <> direct.value:"objectName"::STRING
 GROUP BY object_name
 ORDER BY number_of_queries DESC;
@@ -205,8 +204,7 @@ SELECT
     MIN(START_TIME) AS first_used,
     MAX(START_TIME) AS last_used
 FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
-WHERE ROLE_NAME LIKE 'HRZN_%'
-    AND START_TIME >= DATEADD(day, -30, CURRENT_TIMESTAMP())
+WHERE START_TIME >= DATEADD(day, -30, CURRENT_TIMESTAMP())
 GROUP BY ROLE_NAME
 ORDER BY query_count DESC;
 

@@ -64,13 +64,7 @@ EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/6-nl-governan
 =============================================================================*/
 
 DROP WAREHOUSE IF EXISTS HRZN_DEPLOY_WH;
+DROP DATABASE IF EXISTS HRZN_DEPLOY;
+DROP API INTEGRATION IF EXISTS HRZN_GIT_API_INTEGRATION;
 
 SELECT 'Horizon Catalog demo deployed. Run any demo-*.sql script.' AS status;
-
-/*=============================================================================
-  FULL CLEANUP (uncomment to remove everything including the git integration)
-=============================================================================*/
-
--- EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/99-teardown.sql;
--- DROP DATABASE IF EXISTS HRZN_DEPLOY;
--- DROP API INTEGRATION IF EXISTS HRZN_GIT_API_INTEGRATION;
