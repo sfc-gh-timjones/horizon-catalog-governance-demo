@@ -101,10 +101,9 @@ that apply to tables, views, AI models, and apps — all from a single control p
 - Query attribution ties credit spend back to individual users
 - Object dependency lineage shows which views, tables, and semantic views depend on each other — useful for impact analysis
 - Role effectiveness analysis compares granted privileges vs. actual usage to identify dormant or over-provisioned roles
-- Governance scorecard summarizes policy coverage across the environment
 
 **Demo script:** [`demo-6-audit.sql`](demo-6-audit.sql)
-**Setup reference:** `3-it-admin.sql` (access history + lineage), `6-nl-governance.sql` (governance queries)
+**Setup reference:** `3-it-admin.sql` (access history + lineage)
 
 ---
 

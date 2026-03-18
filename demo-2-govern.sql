@@ -17,7 +17,7 @@
     - State-based row access policy:      2-data-governor.sql lines 333-345
     - Tag-based masking policies:         2-data-governor.sql lines 186-243
     - Tag propagation (CUSTOMER_COPY):    2-data-governor.sql lines 288-309
-    - Projection policy:                  2-data-governor.sql lines 392-401
+    - Projection policy:                  2-data-governor.sql lines 390-399
 ***************************************************************************************************/
 
 USE WAREHOUSE HRZN_WH;

@@ -33,8 +33,6 @@ ALTER GIT REPOSITORY HRZN_DEPLOY.GIT.HORIZON_REPO FETCH;
 
 USE WAREHOUSE HRZN_WH;
 
-USE WAREHOUSE HRZN_WH;
-
 EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/demo-1-discover.sql;
 -- demo-2 intentionally triggers a projection policy error (that's the demo)
 -- EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/demo-2-govern.sql;
