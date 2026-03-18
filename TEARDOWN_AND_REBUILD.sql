@@ -61,8 +61,8 @@ EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/6-nl-governan
     demo-6-audit.sql       Pillar 6: Audit & Compliance
 =============================================================================*/
 
-DROP WAREHOUSE IF EXISTS HRZN_DEPLOY_WH;
 DROP DATABASE IF EXISTS HRZN_DEPLOY;
 DROP API INTEGRATION IF EXISTS HRZN_GIT_API_INTEGRATION;
+DROP WAREHOUSE IF EXISTS HRZN_DEPLOY_WH;
 
 SELECT 'Horizon Catalog demo deployed. Run any demo-*.sql script.' AS status;
