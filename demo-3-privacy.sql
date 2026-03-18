@@ -14,8 +14,8 @@
 
   Setup references:
     - Aggregation policy:                 2-data-governor.sql lines 360-369
-    - EMPLOYEES table (synthetic data):   0-setup.sql lines 204-237
-    - Privacy policy + entity key:        0-setup.sql lines 286-320
+    - EMPLOYEES table (synthetic data):   0-setup.sql lines 313-341
+    - Privacy policy + entity key:        0-setup.sql lines 405-427
     - Customer feedback data + AI_REDACT: 5-ai-redact.sql lines 20-97
     - Role-based redaction view:          5-ai-redact.sql lines 143-155
     - Sentiment analysis:                 5-ai-redact.sql lines 108-120
