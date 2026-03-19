@@ -12,6 +12,8 @@ See [`demo-overview.md`](demo-overview.md) for the full demo guide and Horizon p
 
 ## Quick Start
 
+> Complete **Steps 1 and 2** below and the demo environment will be fully set up and ready to run.
+
 ### Step 1: Create a Git API Integration & Connect Your Workspace
 
 Before running any scripts, you need a Git API integration so Snowflake can pull from this repo — and a Workspace linked to it so you can browse and run the files.
