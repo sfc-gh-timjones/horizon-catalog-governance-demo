@@ -1,6 +1,6 @@
 # Snowflake Horizon Catalog — Governance Demo
 
-> **Based on Snowflake's official Horizon getting-started guide**, tailored and extended for specific demo purposes with additional pillars, synthetic datasets, and customer-facing scripts.
+> **Based on Snowflake's official Horizon getting-started guide**, tailored and extended for specific demo purposes with additional pillars and synthetic datasets.
 > - Quickstart Guide: [Getting Started with Horizon for Data Governance](https://www.snowflake.com/en/developers/guides/getting-started-with-horizon-for-data-governance-in-snowflake/)
 > - Original GitHub Repo: [sfguide-getting-started-with-horizon-data-governance-in-snowflake](https://github.com/Snowflake-Labs/sfguide-getting-started-with-horizon-data-governance-in-snowflake)
 
