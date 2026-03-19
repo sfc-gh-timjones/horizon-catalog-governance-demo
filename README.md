@@ -34,6 +34,7 @@ CREATE API INTEGRATION IF NOT EXISTS GIT_HUB_INTEGRATION
    - **Repository URL:** `https://github.com/sfc-gh-timjones/horizon-catalog-governance-demo`
    - **Workspace name:** e.g. `Horizon Demo`
    - **API integration:** select `GIT_HUB_INTEGRATION` (the one you just created)
+     > If `GIT_HUB_INTEGRATION` doesn't appear in the dropdown, log out and log back in — since it was just created, Snowsight may not have picked it up yet.
    - **Repository access:** select **Public repository**
      > Note: public repositories are read-only — you will not be able to push changes from this Workspace.
 6. Click **Create**.
