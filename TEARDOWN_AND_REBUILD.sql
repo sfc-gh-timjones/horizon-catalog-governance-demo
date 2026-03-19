@@ -17,7 +17,7 @@ USE WAREHOUSE HRZN_DEPLOY_WH;
   1. GIT REPO INTEGRATION
   
   If you followed the README instructions, this integration already exists
-  and the block below is a no-op. If you skipped that step or are unsure,
+  and the block below will do nothing. If you skipped that step or are unsure,
   you can safely uncomment and run it — IF NOT EXISTS means it will only
   create the integration if it isn't already there.
 =============================================================================*/
