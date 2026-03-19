@@ -17,16 +17,16 @@ USE WAREHOUSE HRZN_DEPLOY_WH;
   1. GIT REPO INTEGRATION
 =============================================================================*/
 
-CREATE OR REPLACE API INTEGRATION HRZN_GIT_API_INTEGRATION
+CREATE API INTEGRATION IF NOT EXISTS GIT_HUB
   API_PROVIDER = git_https_api
-  API_ALLOWED_PREFIXES = ('https://github.com/sfc-gh-timjones/horizon-catalog-governance-demo')
+  API_ALLOWED_PREFIXES = ('https://github.com')
   ENABLED = TRUE;
 
 CREATE DATABASE IF NOT EXISTS HRZN_DEPLOY;
 CREATE SCHEMA IF NOT EXISTS HRZN_DEPLOY.GIT;
 
 CREATE OR REPLACE GIT REPOSITORY HRZN_DEPLOY.GIT.HORIZON_REPO
-  API_INTEGRATION = HRZN_GIT_API_INTEGRATION
+  API_INTEGRATION = GIT_HUB
   ORIGIN = 'https://github.com/sfc-gh-timjones/horizon-catalog-governance-demo';
 
 ALTER GIT REPOSITORY HRZN_DEPLOY.GIT.HORIZON_REPO FETCH;
@@ -62,7 +62,6 @@ EXECUTE IMMEDIATE FROM @HRZN_DEPLOY.GIT.HORIZON_REPO/branches/main/6-nl-governan
 =============================================================================*/
 
 DROP DATABASE IF EXISTS HRZN_DEPLOY;
-DROP API INTEGRATION IF EXISTS HRZN_GIT_API_INTEGRATION;
 DROP WAREHOUSE IF EXISTS HRZN_DEPLOY_WH;
 
 SELECT 'Horizon Catalog demo deployed. Run any demo-*.sql script.' AS status;
