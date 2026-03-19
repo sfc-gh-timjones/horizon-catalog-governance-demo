@@ -1,5 +1,9 @@
 # Snowflake Horizon Catalog — Governance Demo
 
+> **Based on Snowflake's official Horizon getting-started guide**, tailored and extended for specific demo purposes with additional pillars, synthetic datasets, and customer-facing scripts.
+> - Quickstart Guide: [Getting Started with Horizon for Data Governance](https://www.snowflake.com/en/developers/guides/getting-started-with-horizon-for-data-governance-in-snowflake/)
+> - Original GitHub Repo: [sfguide-getting-started-with-horizon-data-governance-in-snowflake](https://github.com/Snowflake-Labs/sfguide-getting-started-with-horizon-data-governance-in-snowflake)
+
 End-to-end Snowflake Horizon Catalog demo covering discovery, classification, masking, row access, aggregation, projection, data quality, AI governance, audit, and lineage — with idempotent setup and customer-facing demo scripts.
 
 See [`demo-overview.md`](demo-overview.md) for the full demo guide and Horizon pillar descriptions.
@@ -47,6 +51,8 @@ Your Workspace is now connected to the repo and all scripts are accessible in th
 ## Running the Demos
 
 Once `TEARDOWN_AND_REBUILD.sql` has completed, the environment is fully ready. Simply open and run any demo script — no additional setup needed:
+
+> **Note:** You could technically run each setup script (`0-setup.sql` through `6-nl-governance.sql`) manually one by one, but `TEARDOWN_AND_REBUILD.sql` handles the full sequence automatically via the Git integration — making it a seamless, one-click experience.
 
 | Script | Pillar |
 |--------|--------|
