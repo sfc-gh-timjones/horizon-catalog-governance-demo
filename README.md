@@ -18,7 +18,7 @@ Before running any scripts, you need a Git API integration so Snowflake can pull
 ```sql
 USE ROLE ACCOUNTADMIN;
 
-CREATE API INTEGRATION IF NOT EXISTS GIT_HUB
+CREATE API INTEGRATION IF NOT EXISTS GIT_HUB_INTEGRATION
   API_PROVIDER = git_https_api
   API_ALLOWED_PREFIXES = ('https://github.com')
   ENABLED = TRUE;
@@ -29,7 +29,7 @@ CREATE API INTEGRATION IF NOT EXISTS GIT_HUB
 5. Fill in the form:
    - **Repository URL:** `https://github.com/sfc-gh-timjones/horizon-catalog-governance-demo`
    - **Workspace name:** e.g. `Horizon Demo`
-   - **API integration:** select `GIT_HUB` (the one you just created)
+   - **API integration:** select `GIT_HUB_INTEGRATION` (the one you just created)
    - **Repository access:** select **Public repository**
      > Note: public repositories are read-only — you will not be able to push changes from this Workspace.
 6. Click **Create**.

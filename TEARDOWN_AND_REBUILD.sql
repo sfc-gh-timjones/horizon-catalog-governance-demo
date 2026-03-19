@@ -22,7 +22,7 @@ USE WAREHOUSE HRZN_DEPLOY_WH;
   create the integration if it isn't already there.
 =============================================================================*/
 
--- CREATE API INTEGRATION IF NOT EXISTS GIT_HUB
+-- CREATE API INTEGRATION IF NOT EXISTS GIT_HUB_INTEGRATION
 --   API_PROVIDER = git_https_api
 --   API_ALLOWED_PREFIXES = ('https://github.com')
 --   ENABLED = TRUE;
@@ -31,7 +31,7 @@ CREATE DATABASE IF NOT EXISTS HRZN_DEPLOY;
 CREATE SCHEMA IF NOT EXISTS HRZN_DEPLOY.GIT;
 
 CREATE OR REPLACE GIT REPOSITORY HRZN_DEPLOY.GIT.HORIZON_REPO
-  API_INTEGRATION = GIT_HUB
+  API_INTEGRATION = GIT_HUB_INTEGRATION
   ORIGIN = 'https://github.com/sfc-gh-timjones/horizon-catalog-governance-demo';
 
 ALTER GIT REPOSITORY HRZN_DEPLOY.GIT.HORIZON_REPO FETCH;
