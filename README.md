@@ -8,9 +8,39 @@ See [`demo-overview.md`](demo-overview.md) for the full demo guide and Horizon p
 
 ## Quick Start
 
+### Step 1: Create a Git API Integration & Connect Your Workspace
+
+Before running any scripts, you need a Git API integration so Snowflake can pull from this repo — and a Workspace linked to it so you can browse and run the files.
+
+1. Navigate to **Projects → Workspaces** in Snowsight.
+2. Open a blank SQL file and run the following as `ACCOUNTADMIN`:
+
+```sql
+USE ROLE ACCOUNTADMIN;
+
+CREATE API INTEGRATION IF NOT EXISTS GIT_HUB
+  API_PROVIDER = git_https_api
+  API_ALLOWED_PREFIXES = ('https://github.com')
+  ENABLED = TRUE;
+```
+
+3. At the top of the left-hand file pane, click the **dropdown arrow** next to your current workspace name (likely **My Workspace**).
+4. Select **From Git repository**.
+5. Fill in the form:
+   - **Repository URL:** `https://github.com/sfc-gh-timjones/horizon-catalog-governance-demo`
+   - **Workspace name:** e.g. `Horizon Demo`
+   - **API integration:** select `GIT_HUB` (the one you just created)
+   - **Repository access:** select **Public repository**
+     > Note: public repositories are read-only — you will not be able to push changes from this Workspace.
+6. Click **Create**.
+
+Your Workspace is now connected to the repo and all scripts are accessible in the left pane.
+
+### Step 2: Deploy the Demo Environment
+
 | Script | What it does |
 |--------|-------------|
-| `TEARDOWN_AND_REBUILD.sql` | **Run this first.** One-click deploy: creates git integration, tears down any existing objects, runs all setup scripts. After this, the demo environment is ready. |
+| `TEARDOWN_AND_REBUILD.sql` | **Run this next.** Tears down any existing objects, runs all setup scripts in order. After this, the demo environment is ready. |
 
 ---
 

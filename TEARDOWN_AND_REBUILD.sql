@@ -15,12 +15,17 @@ USE WAREHOUSE HRZN_DEPLOY_WH;
 
 /*=============================================================================
   1. GIT REPO INTEGRATION
+  
+  If you followed the README instructions, this integration already exists
+  and the block below is a no-op. If you skipped that step or are unsure,
+  you can safely uncomment and run it — IF NOT EXISTS means it will only
+  create the integration if it isn't already there.
 =============================================================================*/
 
-CREATE API INTEGRATION IF NOT EXISTS GIT_HUB
-  API_PROVIDER = git_https_api
-  API_ALLOWED_PREFIXES = ('https://github.com')
-  ENABLED = TRUE;
+-- CREATE API INTEGRATION IF NOT EXISTS GIT_HUB
+--   API_PROVIDER = git_https_api
+--   API_ALLOWED_PREFIXES = ('https://github.com')
+--   ENABLED = TRUE;
 
 CREATE DATABASE IF NOT EXISTS HRZN_DEPLOY;
 CREATE SCHEMA IF NOT EXISTS HRZN_DEPLOY.GIT;
